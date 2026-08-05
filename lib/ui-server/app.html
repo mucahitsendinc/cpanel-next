@@ -115,7 +115,11 @@ const S = {
     language:'Dil',auto:'Otomatik',saved:'Kaydedildi.',
     removeConfirm:'{name} profili silinsin mi? Sunucudaki token geçerli kalır; cPanel → Manage API Tokens sayfasından silebilirsiniz.',
     passwordNote:'cPanel şifreniz hiçbir yere kaydedilmez; yalnızca token üretmek için kullanılır.',
-    masterNote:'Token bu ana şifreyle şifrelenip saklanacak.',noProfilesYet:'Henüz hesap eklenmemiş.'},
+    masterNote:'Token bu ana şifreyle şifrelenip saklanacak.',noProfilesYet:'Henüz hesap eklenmemiş.',
+    update:'Güncelle',del:'Sil',deleteApp:'Uygulamayı kaldır',deleteFiles:'Dosyaları da sil (geri alınamaz)',
+    deleteWarn:'{name} uygulaması kaldırılacak. Onaylamak için klasör adını yazın.',
+    noLink:'Bu uygulama bir yerel projeye bağlı değil; güncelleme için Yayınla sekmesini kullanın.',
+    linkedTo:'Bağlı proje'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -143,7 +147,11 @@ const S = {
     language:'Language',auto:'Automatic',saved:'Saved.',
     removeConfirm:'Remove the profile {name}? The token on the server stays valid; delete it from cPanel → Manage API Tokens.',
     passwordNote:'Your cPanel password is never stored; it is only used to create a token.',
-    masterNote:'The token will be encrypted with this master password.',noProfilesYet:'No accounts added yet.'}
+    masterNote:'The token will be encrypted with this master password.',noProfilesYet:'No accounts added yet.',
+    update:'Update',del:'Remove',deleteApp:'Remove application',deleteFiles:'Delete files too (irreversible)',
+    deleteWarn:'The application {name} will be removed. Type the folder name to confirm.',
+    noLink:'This application is not linked to a local project; use the Deploy tab.',
+    linkedTo:'Linked project'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -313,6 +321,7 @@ async function viewOverview(root, refresh) {
           el('td', { class: 'mono' }, a ? a.name : s('none')));
       })))));
 
+  const jobOut = el('div', {});
   root.append(el('div', { class: 'card' },
     el('h2', {}, s('apps')),
     o.apps.length === 0 ? el('p', { class: 'sub' }, s('noApps')) :
@@ -337,7 +346,20 @@ async function viewOverview(root, refresh) {
           el('td', {}, el('span', { class: 'pill ' + (a.owned ? 'ok' : '') }, a.owned ? s('mine') : s('external'))),
           el('td', {}, el('div', { class: 'row' },
             el('button', { onclick: act(on ? 'stop' : 'start') }, on ? s('stop') : s('start')),
-            el('button', { onclick: act('restart') }, s('restart')))));
+            el('button', { onclick: act('restart') }, s('restart')),
+            el('button', {
+              class: a.ownerProject ? 'primary' : '',
+              title: a.ownerProject || s('noLink'),
+              onclick: async (e) => {
+                if (!a.ownerProject) { alert(s('noLink')); return; }
+                e.target.disabled = true;
+                try {
+                  const r = await post('app-update', { profile: ST.profile, appRoot: a.path });
+                  renderJob(jobOut, r.jobId);
+                } catch (err) { e.target.disabled = false; showError(jobOut, err); }
+              },
+            }, s('update')),
+            el('button', { class: 'danger', onclick: () => askDelete(jobOut, a) }, s('del')))));
       })))));
 }
 
@@ -380,7 +402,7 @@ async function viewDeploy(root) {
     info.append(el('p', { class: 'sub' }, s('working')));
     try {
       const r = await api('project?path=' + encodeURIComponent(d.path));
-      d.project = r.project; d.plan = r.plan;
+      d.project = r.project; d.plan = r.plan; d.link = r.link;
     } catch (err) { return showError(root, err); }
     return viewDeploy(root);
   }
@@ -410,8 +432,17 @@ async function viewDeploy(root) {
   const targetCard = el('div', { class: 'card' }, el('h2', {}, s('willDeploy')));
   const domSel = el('select', {},
     ...o.domains.filter((x) => x.type !== 'parked').map((x) =>
-      el('option', { value: x.domain, selected: x.domain === d.domain }, x.domain + ' — ' + x.typeLabel)));
-  const rootIn = el('input', { value: d.appRoot ?? '', placeholder: 'myappnext' });
+      el('option', { value: x.domain, selected: x.domain === (d.domain ?? (d.link && d.link.domain)) }, x.domain + ' — ' + x.typeLabel)));
+  /*
+   * Kayıtlı bağlantı varsa onu kullan — kullanıcı her seferinde klasör adını
+   * elle yazmak zorunda kalmasın. `suggest()` yalnızca HİÇ bağlantı yokken,
+   * yani gerçekten yeni bir uygulama kurulurken devreye giriyor.
+   */
+  const linked = d.link ?? {};
+  const rootIn = el('input', {
+    value: d.appRoot ?? linked.appRoot ?? '',
+    placeholder: 'myappnext',
+  });
   domSel.addEventListener('change', () => {
     if (!rootIn.value) rootIn.value = suggest(domSel.value, o.apps);
   });
