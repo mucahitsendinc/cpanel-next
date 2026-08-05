@@ -48,6 +48,7 @@ const COMMANDS = {
   doctor: () => import('../lib/commands/doctor.mjs'),
   ui: () => import('../lib/commands/ui.mjs'),
   config: () => import('../lib/commands/config.mjs'),
+  maintenance: () => import('../lib/commands/maintenance.mjs'),
 };
 
 async function main() {

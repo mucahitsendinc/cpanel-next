@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertAppRoot, assertOwnership, isDestructive, PROTECTED_NAMES } from '../lib/guards.mjs';
+import { assertAppRoot, inspectOwnership, isDestructive, PROTECTED_NAMES } from '../lib/guards.mjs';
 import { setLocale } from '../lib/i18n/index.mjs';
 
 setLocale('en');
@@ -69,36 +69,52 @@ const fakeClient = (marker) => ({
   uapiPost: async () => ({ content: marker ? JSON.stringify(marker) : null }),
 });
 
-test('yeni klasör sahiplik gerektirmez', async () => {
-  const r = await assertOwnership(fakeClient(null), 'newapp', { dirExists: false });
-  assert.equal(r.owned, true);
+test('yeni klasör: durum "new"', async () => {
+  const r = await inspectOwnership(fakeClient(null), 'newapp', { dirExists: false });
+  assert.equal(r.state, 'new');
 });
 
-test('işareti olmayan mevcut klasör REDDEDİLİR', async () => {
-  await assert.rejects(
-    () => assertOwnership(fakeClient(null), 'panelnext', { dirExists: true }),
-    /not created by this tool/i
-  );
-});
-
-test('bu aracın işareti varsa geçer', async () => {
-  const r = await assertOwnership(fakeClient({ tool: 'cpanel-next', v: 1 }), 'mynext', {
+test('bu araçla yayınlanmış klasör tanınır', async () => {
+  const r = await inspectOwnership(fakeClient({ tool: 'cpanel-next', v: 1 }), 'mynext', {
     dirExists: true,
   });
-  assert.equal(r.owned, true);
+  assert.equal(r.state, 'owned');
+  assert.equal(r.marker.tool, 'cpanel-next');
 });
 
-test('başka bir aracın işareti geçmez', async () => {
-  await assert.rejects(
-    () => assertOwnership(fakeClient({ tool: 'some-other-tool' }), 'x', { dirExists: true }),
-    /not created by this tool/i
-  );
+test('işareti olmayan klasör ENGELLENMEZ, yalnızca bildirilir', async () => {
+  // Eskiden burası hata fırlatıyordu ve kullanıcı her güncellemede --adopt
+  // yazmak zorunda kalıyordu. Koruma artık yazarak onay + yedekte.
+  const r = await inspectOwnership(fakeClient(null), 'elle-kurulmus', { dirExists: true });
+  assert.equal(r.state, 'foreign');
 });
 
-test('--adopt sahiplik denetimini geçer ama işaretlenir', async () => {
-  const r = await assertOwnership(fakeClient(null), 'x', { dirExists: true, adopt: true });
-  assert.equal(r.owned, true);
-  assert.equal(r.adopted, true);
+test('başka bir aracın işareti de engellemez', async () => {
+  const r = await inspectOwnership(fakeClient({ tool: 'some-other-tool' }), 'x', { dirExists: true });
+  assert.equal(r.state, 'foreign');
+});
+
+test('BAŞKA domaine bağlı klasör ayrıca işaretlenir', async () => {
+  // Asıl tehlikeli durum: adını doğru yazmış olsanız bile büyük ihtimalle
+  // yanlış klasörü seçtiniz.
+  const apps = [{ path: 'panelnext', domain: 'panel.baska.com' }];
+  const r = await inspectOwnership(fakeClient(null), 'panelnext', {
+    dirExists: true,
+    apps,
+    domain: 'benim.com',
+  });
+  assert.equal(r.state, 'other-domain');
+  assert.equal(r.app.domain, 'panel.baska.com');
+});
+
+test('aynı domaine bağlı klasör olağan sayılır', async () => {
+  const apps = [{ path: 'mynext', domain: 'benim.com' }];
+  const r = await inspectOwnership(fakeClient(null), 'mynext', {
+    dirExists: true,
+    apps,
+    domain: 'benim.com',
+  });
+  assert.equal(r.state, 'foreign');
 });
 
 test('yıkıcılık tanımı', () => {
