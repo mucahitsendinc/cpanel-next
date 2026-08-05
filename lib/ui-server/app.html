@@ -123,7 +123,10 @@ const S = {
     project:'Proje',changeProject:'Klasör değiştir',pickFolder:'Klasör seç',
     newSubdomain:'Subdomain ekle',subLabel:'Alt ad',underDomain:'Hangi domainin altına',
     createSub:'Oluştur',delSub:'Sil',subDeleteWarn:'{domain} silinecek. Onaylamak için domaini yazın.',
-    switchProject:'Proje seç',relinkTo:'Bu uygulama için klasör seçin'},
+    switchProject:'Proje seç',relinkTo:'Bu uygulama için klasör seçin',
+    whichProject:'Hangi proje yayınlansın?',linkedProject:'Bağlı proje',selectedProject:'Üstte seçili proje',
+    projectMismatch:'Seçtiğiniz proje bu uygulamanın bağlı olduğu projeden farklı. Hangisini yayınlayacağınızı seçin.',
+    deployThis:'Bunu yayınla'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -159,7 +162,10 @@ const S = {
     project:'Project',changeProject:'Change folder',pickFolder:'Pick a folder',
     newSubdomain:'Add subdomain',subLabel:'Label',underDomain:'Under which domain',
     createSub:'Create',delSub:'Remove',subDeleteWarn:'{domain} will be removed. Type the domain to confirm.',
-    switchProject:'Pick project',relinkTo:'Pick a folder for this application'}
+    switchProject:'Pick project',relinkTo:'Pick a folder for this application',
+    whichProject:'Which project should be deployed?',linkedProject:'Linked project',selectedProject:'Project selected above',
+    projectMismatch:'The project you selected differs from the one this application is linked to. Choose which to deploy.',
+    deployThis:'Deploy this'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -377,15 +383,8 @@ async function viewOverview(root, refresh) {
             el('button', {
               class: a.ownerProject ? 'primary' : '',
               title: a.ownerProject || s('noLink'),
-              onclick: async (e) => {
-                if (!a.ownerProject) { alert(s('noLink')); return; }
-                e.target.disabled = true;
-                try {
-                  const r = await post('app-update', { profile: ST.profile, appRoot: a.path });
-                  renderJob(jobOut, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
-                } catch (err) { e.target.disabled = false; showError(jobOut, err); }
-              },
-            }, s('update')),
+              onclick: () => startUpdate(jobOut, a, root),
+            }, s('update') + (a.ownerProject ? ' · ' + a.ownerProject.split('/').filter(Boolean).pop() : '')),
             el('button', {
               title: s('changeProject'),
               onclick: () => {
@@ -404,6 +403,49 @@ async function viewOverview(root, refresh) {
   // eklenmiyordu. Sonuç: düğmeye basınca devre dışı kalıyor ve HİÇBİR ŞEY
   // görünmüyordu.
   root.append(jobOut);
+}
+
+/**
+ * Güncelleme başlat.
+ *
+ * Projeyi HER ZAMAN açıkça gönderiyoruz. Eskiden düğme yalnızca uygulama
+ * klasörünü gönderiyordu ve sunucu sahiplik işaretindeki projeye düşüyordu —
+ * yani üstte başka bir proje seçilse bile hep eskisi yayınlanıyordu.
+ *
+ * Seçili proje bağlı projeden farklıysa SESSİZCE birini seçmiyoruz: ikisi de
+ * makul bir niyet olabilir ve yanlış olanı seçmek uygulamanın üstüne başka bir
+ * projeyi yazmak demek. Kullanıcı karar veriyor.
+ */
+function startUpdate(out, app, root) {
+  const selected = ST.deploy.path || null;
+  const linked = app.ownerProject || null;
+
+  const run = async (projectPath) => {
+    clear(out);
+    try {
+      const r = await post('app-update', { profile: ST.profile, appRoot: app.path, projectPath });
+      renderJob(out, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
+    } catch (err) { showError(out, err); }
+  };
+
+  if (!linked && !selected) { alert(s('noLink')); return; }
+  if (!selected || !linked || samePath(selected, linked)) { run(selected || linked); return; }
+
+  clear(out);
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg warn' }, s('projectMismatch')),
+    el('h2', {}, s('whichProject')),
+    el('div', { class: 'row', style: 'margin-top:10px' },
+      el('button', { class: 'primary', onclick: () => run(linked) },
+        s('linkedProject') + ': ' + linked.split('/').filter(Boolean).pop()),
+      el('button', { onclick: () => run(selected) },
+        s('selectedProject') + ': ' + selected.split('/').filter(Boolean).pop())),
+    el('p', { class: 'sub', style: 'margin-top:10px' }, linked + '  ·  ' + selected)));
+}
+
+function samePath(a, b) {
+  const norm = (p) => String(p).replace(/\/+$/, '');
+  return norm(a) === norm(b);
 }
 
 /** Yeni subdomain. Belge kökü domain adıyla aynı tutuluyor. */

@@ -92,3 +92,51 @@ test('kritik uyarı metinleri iki dilde de dolu', () => {
   }
   setLocale('en');
 });
+
+test('kodda kullanılan HER anahtar sözlükte var', async () => {
+  /*
+   * Sözlük eşitliği yetmiyor: bir anahtar iki sözlükte de YOKSA ya da yanlış
+   * bölüme düşmüşse eşitlik testi bunu göremez. Üretimde tam olarak bu oldu —
+   * `deploy.maintenanceOn` yanlışlıkla `rollback` altına eklendi ve ekrana ham
+   * anahtar adı basıldı. Bu test kaynağı tarayıp her `t('...')` çağrısını
+   * doğruluyor.
+   */
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const root = new URL('..', import.meta.url).pathname;
+
+  const files = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (['node_modules', '.git', 'test', 'locales'].includes(e.name)) continue;
+        walk(p);
+      } else if (e.name.endsWith('.mjs')) files.push(p);
+    }
+  };
+  walk(path.join(root, 'lib'));
+  files.push(path.join(root, 'bin', 'cli.mjs'));
+
+  const missing = [];
+  for (const file of files) {
+    // Yorumları at: dokümantasyon örnekleri gerçek çağrı değil.
+    const src = fs
+      .readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+    // Yalnızca düz metin anahtarlar; şablonla üretilenler zaten kaçınılmalı.
+    for (const m of src.matchAll(/\bt\(\s*'([a-zA-Z][\w.]*)'/g)) {
+      const key = m[1];
+      setLocale('tr');
+      const tr = t(key);
+      setLocale('en');
+      const en = t(key);
+      if (tr === key || en === key) {
+        missing.push(`${path.relative(root, file)} → ${key}`);
+      }
+    }
+  }
+  setLocale('en');
+  assert.deepEqual(missing, [], `sözlükte olmayan anahtarlar:\n  ${missing.join('\n  ')}`);
+});
