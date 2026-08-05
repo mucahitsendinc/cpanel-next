@@ -115,11 +115,15 @@ const S = {
     language:'Dil',auto:'Otomatik',saved:'Kaydedildi.',
     removeConfirm:'{name} profili silinsin mi? Sunucudaki token geçerli kalır; cPanel → Manage API Tokens sayfasından silebilirsiniz.',
     passwordNote:'cPanel şifreniz hiçbir yere kaydedilmez; yalnızca token üretmek için kullanılır.',
-    masterNote:'Token bu ana şifreyle şifrelenip saklanacak.',noProfilesYet:'Henüz hesap eklenmemiş.',
+    noProfilesYet:'Henüz hesap eklenmemiş.',
     update:'Güncelle',del:'Sil',deleteApp:'Uygulamayı kaldır',deleteFiles:'Dosyaları da sil (geri alınamaz)',
     deleteWarn:'{name} uygulaması kaldırılacak. Onaylamak için klasör adını yazın.',
     noLink:'Bu uygulama bir yerel projeye bağlı değil; güncelleme için Yayınla sekmesini kullanın.',
-    linkedTo:'Bağlı proje'},
+    linkedTo:'Bağlı proje',
+    project:'Proje',changeProject:'Klasör değiştir',pickFolder:'Klasör seç',
+    newSubdomain:'Subdomain ekle',subLabel:'Alt ad',underDomain:'Hangi domainin altına',
+    createSub:'Oluştur',delSub:'Sil',subDeleteWarn:'{domain} silinecek. Onaylamak için domaini yazın.',
+    switchProject:'Proje seç',relinkTo:'Bu uygulama için klasör seçin'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -147,11 +151,15 @@ const S = {
     language:'Language',auto:'Automatic',saved:'Saved.',
     removeConfirm:'Remove the profile {name}? The token on the server stays valid; delete it from cPanel → Manage API Tokens.',
     passwordNote:'Your cPanel password is never stored; it is only used to create a token.',
-    masterNote:'The token will be encrypted with this master password.',noProfilesYet:'No accounts added yet.',
+    noProfilesYet:'No accounts added yet.',
     update:'Update',del:'Remove',deleteApp:'Remove application',deleteFiles:'Delete files too (irreversible)',
     deleteWarn:'The application {name} will be removed. Type the folder name to confirm.',
     noLink:'This application is not linked to a local project; use the Deploy tab.',
-    linkedTo:'Linked project'}
+    linkedTo:'Linked project',
+    project:'Project',changeProject:'Change folder',pickFolder:'Pick a folder',
+    newSubdomain:'Add subdomain',subLabel:'Label',underDomain:'Under which domain',
+    createSub:'Create',delSub:'Remove',subDeleteWarn:'{domain} will be removed. Type the domain to confirm.',
+    switchProject:'Pick project',relinkTo:'Pick a folder for this application'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -264,8 +272,20 @@ function renderMain() {
     renderMain();
   } }, LANG === 'tr' ? 'EN' : 'TR');
 
+  /*
+   * Üstte hangi YEREL projede olduğumuz yazıyor; tıklayınca proje seçiciye
+   * dönülüyor. Araç birden çok projeden çalıştırıldığında hangisine baktığını
+   * bilmek şart.
+   */
+  const projBtn = el('button', {
+    style: 'max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+    title: ST.deploy.path || s('switchProject'),
+    onclick: () => { ST.deploy = {}; ST.tab = 'deploy'; renderMain(); },
+  }, '📁 ' + (ST.deploy.path ? ST.deploy.path.split('/').filter(Boolean).pop() : s('switchProject')));
+
   app.append(el('header', {},
-    el('span', { class: 'brand' }, 'cpanel-next'), sel, el('span', { class: 'spacer' }), langBtn,
+    el('span', { class: 'brand' }, 'cpanel-next'), sel,
+    el('span', { class: 'spacer' }), projBtn, el('span', { class: 'spacer' }), langBtn,
     el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock')),
     el('button', { onclick: async () => {
       const r = await post('exit');
@@ -307,11 +327,15 @@ async function viewOverview(root, refresh) {
       el('dt', {}, s('regime')), el('dd', {}, o.regimeLabel),
       el('dt', {}, s('quota')), el('dd', {}, o.apps.length + ' / ' + (o.maxApps ?? '∞')))));
 
+  const subOut = el('div', {});
   root.append(el('div', { class: 'card' },
-    el('h2', {}, s('domains')),
+    el('div', { class: 'row' },
+      el('h2', { style: 'flex:1' }, s('domains')),
+      el('button', { onclick: () => askNewSubdomain(subOut, o, root) }, '+ ' + s('newSubdomain'))),
+    subOut,
     el('table', {},
       el('thead', {}, el('tr', {}, el('th', {}, s('domain')), el('th', {}, s('type')),
-        el('th', {}, s('docroot')), el('th', {}, s('app')))),
+        el('th', {}, s('docroot')), el('th', {}, s('app')), el('th', {}))),
       el('tbody', {}, ...o.domains.map((d) => {
         const a = o.apps.find((x) => x.domain === d.domain);
         return el('tr', {},
@@ -362,8 +386,63 @@ async function viewOverview(root, refresh) {
                 } catch (err) { e.target.disabled = false; showError(jobOut, err); }
               },
             }, s('update')),
+            el('button', {
+              title: s('changeProject'),
+              onclick: () => {
+                // Hedef sabit (domain + app-root), yalnızca KAYNAK klasör
+                // yeniden seçiliyor. Uygulamayı başka bir yerel projeye bağlamak
+                // ya da makine değiştirdikten sonra yeniden eşlemek için.
+                ST.deploy = { path: null, domain: a.domain, appRoot: a.path, relink: a.name };
+                ST.tab = 'deploy';
+                renderMain();
+              },
+            }, '📁'),
             el('button', { class: 'danger', onclick: () => askDelete(jobOut, a) }, s('del')))));
       })))));
+
+  // ⚠ Bu satır eksikti: kap oluşturuluyor, düğmeler ona yazıyor ama DOM'a hiç
+  // eklenmiyordu. Sonuç: düğmeye basınca devre dışı kalıyor ve HİÇBİR ŞEY
+  // görünmüyordu.
+  root.append(jobOut);
+}
+
+/** Yeni subdomain. Belge kökü domain adıyla aynı tutuluyor. */
+function askNewSubdomain(out, o, root) {
+  clear(out);
+  const roots = o.domains.filter((d) => d.type === 'main' || d.type === 'addon');
+  const rootSel = el('select', {}, ...roots.map((d) => el('option', { value: d.domain }, d.domain)));
+  const label = el('input', { placeholder: 'magaza' });
+  const go = el('button', { class: 'primary', style: 'margin-top:12px' }, s('createSub'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      await post('subdomain', { profile: ST.profile, label: label.value, rootDomain: rootSel.value });
+      ST.overview = null;
+      const c = root; clear(c); viewOverview(c, true);
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:12px 0' },
+    el('label', {}, s('underDomain')), rootSel,
+    el('label', {}, s('subLabel')), label, go));
+}
+
+/** Subdomain silme — yazarak onay, ve üstünde uygulama varsa sunucu reddediyor. */
+function askDeleteSubdomain(out, d, root) {
+  clear(out);
+  const input = el('input', { placeholder: d.domain });
+  const go = el('button', { class: 'danger', style: 'margin-top:12px' }, s('delSub'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      await api('subdomain', { method: 'DELETE', body: JSON.stringify({
+        profile: ST.profile, domain: d.domain, confirm: input.value }) });
+      ST.overview = null;
+      const c = root; clear(c); viewOverview(c, true);
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:12px 0' },
+    el('div', { class: 'msg warn' }, s('subDeleteWarn').replace('{domain}', d.domain)),
+    el('label', {}, s('typeToConfirm')), input, go));
 }
 
 /* ---------------------------------------------------------------- deploy */
@@ -377,7 +456,13 @@ async function viewDeploy(root) {
 
   if (!d.path) {
     const list = el('div', {});
-    projCard.append(el('p', { class: 'sub' }, s('pickProject')), list);
+    projCard.append(
+      el('p', { class: 'sub' }, d.relink ? s('relinkTo') : s('pickProject')),
+      d.relink
+        ? el('div', { class: 'msg info' }, `${d.relink} → ${d.domain} · ~/${d.appRoot}`)
+        : null,
+      list
+    );
     api('recent').then((r) => {
       if (r.items.length) {
         list.append(el('label', {}, s('recent')));
@@ -395,7 +480,8 @@ async function viewDeploy(root) {
   /* proje seçildi */
   projCard.append(
     el('div', { class: 'row' },
-      el('code', { style: 'flex:1' }, d.path),
+      el('code', { style: 'flex:1;word-break:break-all' }, d.path),
+      el('button', { onclick: () => { ST.deploy = { relink: d.relink, domain: d.domain, appRoot: d.appRoot }; renderMain(); } }, s('changeProject')),
       el('button', { onclick: () => { ST.deploy = {}; renderMain(); } }, s('cancel'))));
 
   const info = el('div', {});
@@ -477,7 +563,11 @@ async function viewDeploy(root) {
     out);
   root.append(targetCard);
 
-  function pick(p) { ST.deploy = { path: p }; renderMain(); }
+  function pick(p) {
+    // relink kipinde hedef korunuyor; yalnızca kaynak klasör değişiyor.
+    ST.deploy = { path: p, relink: d.relink, domain: d.domain, appRoot: d.appRoot };
+    renderMain();
+  }
   async function renderBrowse(box, start) {
     clear(box);
     let r;
@@ -695,19 +785,23 @@ async function viewSettings(root) {
   const user = el('input', {});
   const port = el('input', { type: 'number', value: '2083' });
   const pass = el('input', { type: 'password' });
-  const master = el('input', { type: 'password' });
   const addOut = el('div', {});
   const addBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('add'));
 
   addBtn.addEventListener('click', async () => {
     addBtn.disabled = true; clear(addOut);
     try {
+      /*
+       * Ana şifre SORULMUYOR: kasa bu oturumda zaten açık ve tek. Her hesap
+       * için ayrı şifre istemek, "şifrem global olsun" beklentisinin tam
+       * tersiydi.
+       */
       const r = await post('profiles', {
         host: host.value, user: user.value, port: Number(port.value) || 2083,
-        password: pass.value, master: master.value });
+        password: pass.value });
       ST.profiles = r.profiles;
       if (!ST.profile) ST.profile = r.profiles[0]?.name ?? null;
-      pass.value = ''; master.value = '';
+      pass.value = '';
       ST.overview = null;
       renderMain();
     } catch (err) { showError(addOut, err); }
@@ -722,8 +816,6 @@ async function viewSettings(root) {
     el('label', {}, s('user')), user,
     el('label', {}, s('password')), pass,
     el('p', { class: 'sub' }, s('passwordNote')),
-    el('label', {}, s('master')), master,
-    el('p', { class: 'sub' }, s('masterNote')),
     addBtn, addOut));
 
   /* --- tercihler --- */
