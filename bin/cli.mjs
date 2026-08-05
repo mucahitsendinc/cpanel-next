@@ -25,6 +25,8 @@ const OPTIONS = {
   // davranış
   lang: { type: 'string' },
   'no-open': { type: 'boolean', default: false },
+  web: { type: 'boolean', default: false },
+  terminal: { type: 'boolean', default: false },
   yes: { type: 'boolean', short: 'y', default: false },
   confirm: { type: 'string' },
   'dry-run': { type: 'boolean', default: false },
@@ -45,6 +47,7 @@ const COMMANDS = {
   logs: () => import('../lib/commands/logs.mjs'),
   doctor: () => import('../lib/commands/doctor.mjs'),
   ui: () => import('../lib/commands/ui.mjs'),
+  config: () => import('../lib/commands/config.mjs'),
 };
 
 async function main() {
@@ -81,16 +84,41 @@ async function main() {
   }
 
   const first = positionals[0];
-  const commandName = first && COMMANDS[first] ? positionals.shift() : 'deploy';
+  const explicit = Boolean(first && COMMANDS[first]);
+  if (explicit) positionals.shift();
 
   if (flags.help) {
     console.log(t('cli.help'));
     return;
   }
 
-  if (first && !COMMANDS[first]) {
+  if (first && !explicit) {
     console.error(`${t('cli.unknownCommand', { name: first })}\n\n${t('cli.tryHelp')}`);
     process.exit(2);
+  }
+
+  // Kayıtlı dil tercihi (bayrak ve ortam değişkeni ondan önce gelir).
+  if (!flags.lang && !process.env.CPANEL_NEXT_LANG) {
+    const { getPreferences } = await import('../lib/config.mjs');
+    const saved = getPreferences().lang;
+    if (saved) setLocale(saved);
+  }
+
+  /*
+   * Komut verilmediyse varsayılan arayüz tercihine bakılır.
+   *
+   * `deploymanager` yazmak, kullanıcının tercihine göre ya terminal akışını
+   * ya da web arayüzünü açar. Komut açıkça verildiyse (ör. `deploy`) tercih
+   * devreye girmez — açık komut her zaman kazanır.
+   */
+  let commandName = explicit ? first : 'deploy';
+  if (!explicit) {
+    if (flags.web) commandName = 'ui';
+    else if (flags.terminal) commandName = 'deploy';
+    else {
+      const { ensureUiPreference } = await import('../lib/commands/config.mjs');
+      commandName = (await ensureUiPreference()) === 'web' ? 'ui' : 'deploy';
+    }
   }
 
   const mod = await COMMANDS[commandName]();

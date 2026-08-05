@@ -106,7 +106,9 @@ const S = {
     noBackups:'Yedek yok.',rollbackWarn:'Bu klasörün içeriği silinip yedek geri yazılacak.',
     version:'Sürüm',history:'Deploy geçmişi',serverRuns:'Sunucudaki çalıştırmalar',
     refresh:'Yenile',blockers:'Yayınlanamaz',open:'Aç',noProject:'Önce bir proje seçin.',
-    quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…'},
+    quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…',
+    backToTerminal:'Terminale dön',jobRunning:'İş sürüyor — kapatmak onu durdurmaz, ama pencereyi açık tutmak ilerlemeyi görmenizi sağlar.',
+    closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -125,7 +127,9 @@ const S = {
     noBackups:'No backups.',rollbackWarn:'This folder will be emptied and the backup restored.',
     version:'Version',history:'Deploy history',serverRuns:'Server runs',
     refresh:'Refresh',blockers:'Not deployable',open:'Open',noProject:'Pick a project first.',
-    quota:'quota',regime:'Regime',account:'Account',working:'Working…'}
+    quota:'quota',regime:'Regime',account:'Account',working:'Working…',
+    backToTerminal:'Back to terminal',jobRunning:'A job is running — closing will not stop it, but keeping this open lets you watch progress.',
+    closed:'You can close this window. Returned to the terminal.'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -184,6 +188,12 @@ async function boot() {
   ST.profiles = st.profiles;
   LANG = st.lang || LANG;
   if (!ST.profile && st.profiles.length) ST.profile = st.profiles[0].name;
+  // Terminalden bir proje dizininde açıldıysa o projeyi hazır seç ve
+  // doğrudan yayınla sekmesine düş — kullanıcı zaten onun için geldi.
+  if (st.initialProject && !ST.deploy.path) {
+    ST.deploy = { path: st.initialProject.path };
+    ST.tab = 'deploy';
+  }
   ST.locked ? renderUnlock() : renderMain();
 }
 
@@ -233,7 +243,15 @@ function renderMain() {
 
   app.append(el('header', {},
     el('span', { class: 'brand' }, 'cpanel-next'), sel, el('span', { class: 'spacer' }), langBtn,
-    el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock'))));
+    el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock')),
+    el('button', { onclick: async () => {
+      const r = await post('exit');
+      if (r.jobs && !confirm(s('jobRunning'))) return;
+      document.body.innerHTML = '';
+      document.body.append(el('div', { class: 'center' },
+        el('div', { class: 'card' }, el('h2', {}, 'cpanel-next'), el('p', { class: 'sub' }, s('closed')))));
+      stopHeartbeat();
+    } }, s('backToTerminal'))));
 
   const main = el('main', {});
   const tabs = el('div', { class: 'tabs' },
@@ -624,6 +642,26 @@ async function viewLogs(root) {
   }
 }
 
+/* ------------------------------------------------------------ kalp atışı */
+/*
+ * Terminal, bu atışlar kesilince geri döner.
+ *
+ * `beforeunload` + `sendBeacon` yerine düzenli atış kullanıyoruz: beacon
+ * sekme çöktüğünde, ağ koptuğunda veya tarayıcı onu düşürdüğünde hiç gelmez.
+ * Atışın YOKLUĞU ise her durumda doğru sinyal.
+ */
+let beatTimer = null;
+function startHeartbeat() {
+  const beat = () => post('heartbeat').catch(() => {});
+  beat();
+  beatTimer = setInterval(beat, 4000);
+  // Sekme arka plana alınınca tarayıcılar zamanlayıcıyı yavaşlatır; geri
+  // gelince hemen bir atış gönderip gereksiz çıkışı önlüyoruz.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) beat(); });
+}
+function stopHeartbeat() { if (beatTimer) clearInterval(beatTimer); beatTimer = null; }
+
+startHeartbeat();
 boot().catch((e) => { app.append(el('div', { class: 'msg err' }, e.message)); });
 </script>
 </body>
