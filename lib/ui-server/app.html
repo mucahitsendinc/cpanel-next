@@ -126,7 +126,8 @@ const S = {
     switchProject:'Proje seç',relinkTo:'Bu uygulama için klasör seçin',
     whichProject:'Hangi proje yayınlansın?',linkedProject:'Bağlı proje',selectedProject:'Üstte seçili proje',
     projectMismatch:'Seçtiğiniz proje bu uygulamanın bağlı olduğu projeden farklı. Hangisini yayınlayacağınızı seçin.',
-    deployThis:'Bunu yayınla'},
+    deployThis:'Bunu yayınla',
+    domainHasApp:'Bu domainde zaten "{name}" uygulaması var (~/{path}). Yeni klasör yazarsanız paket oraya gider ve site DEĞİŞMEZ.'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -165,7 +166,8 @@ const S = {
     switchProject:'Pick project',relinkTo:'Pick a folder for this application',
     whichProject:'Which project should be deployed?',linkedProject:'Linked project',selectedProject:'Project selected above',
     projectMismatch:'The project you selected differs from the one this application is linked to. Choose which to deploy.',
-    deployThis:'Deploy this'}
+    deployThis:'Deploy this',
+    domainHasApp:'This domain already has the application "{name}" (~/{path}). If you enter a new folder the package goes there and the site will NOT change.'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -570,14 +572,38 @@ async function viewDeploy(root) {
    * yani gerçekten yeni bir uygulama kurulurken devreye giriyor.
    */
   const linked = d.link ?? {};
-  const rootIn = el('input', {
-    value: d.appRoot ?? linked.appRoot ?? '',
-    placeholder: 'myappnext',
-  });
-  domSel.addEventListener('change', () => {
-    if (!rootIn.value) rootIn.value = suggest(domSel.value, o.apps);
-  });
-  if (!rootIn.value) rootIn.value = suggest(domSel.value, o.apps);
+  const rootIn = el('input', { placeholder: 'myappnext' });
+  const hint = el('div', {});
+
+  /*
+   * Klasör adı seçme SIRASI — ve bu sıra pahalıya mal olan bir hatadan geliyor.
+   *
+   * Eskiden burada doğrudan `suggest()` çağrılıyordu, yani domainde ZATEN bir
+   * uygulama olsa bile yeni bir ad uyduruluyordu. Sonuç: kullanıcı deploy
+   * ediyor, "başarılı" yazısını görüyor, ama site değişmiyor — çünkü paket
+   * hiç servis edilmeyen yeni bir klasöre gitmiş oluyor.
+   *
+   * Doğru sıra: kayıtlı bağlantı → domaindeki MEVCUT uygulama → yeni ad.
+   */
+  function pickRoot(domain) {
+    if (d.appRoot) return { value: d.appRoot, why: null };
+    if (linked.appRoot) return { value: linked.appRoot, why: null };
+    const existing = o.apps.find((a) => a.domain === domain);
+    if (existing) return { value: existing.path, why: existing };
+    return { value: suggest(domain, o.apps), why: null };
+  }
+
+  function applyRoot() {
+    const r = pickRoot(domSel.value);
+    rootIn.value = r.value;
+    clear(hint);
+    if (r.why) {
+      hint.append(el('div', { class: 'msg info' },
+        s('domainHasApp').replace('{name}', r.why.name).replace('{path}', r.why.path)));
+    }
+  }
+  domSel.addEventListener('change', applyRoot);
+  applyRoot();
 
   const noBuild = el('input', { type: 'checkbox', style: 'width:auto' });
   const adopt = el('input', { type: 'checkbox', style: 'width:auto' });
@@ -585,7 +611,7 @@ async function viewDeploy(root) {
 
   targetCard.append(
     el('label', {}, s('domain')), domSel,
-    el('label', {}, s('appRoot')), rootIn,
+    el('label', {}, s('appRoot')), rootIn, hint,
     el('div', { class: 'row', style: 'margin-top:14px' },
       el('label', { style: 'margin:0;text-transform:none;font-size:13px' }, noBuild, ' ' + s('noBuild'))),
     el('div', { class: 'row' },
