@@ -110,3 +110,110 @@ test('exclude deseni benzer adlı dizini yanlışlıkla yakalamaz', () => {
   assert.ok(m('test/a.js'));
   assert.equal(m('tests-utils/a.js'), null);
 });
+
+/* ------------------------------------------------------------------------ *
+ * Sürüm sabitleme
+ *
+ * Canlı bir hesapta bulunan arıza: build yerelde next 16.1.1 ile koşuyor,
+ * sunucuda `^16.1.1` 16.3.0 çekiyor ve 16.1.1 için derlenmiş `.next`'i 16.3.0
+ * çalıştırınca uygulama çerçevenin İÇİNDE `undefined.map` ile çöküyor. Yığın
+ * izi `at ignore-listed frames` diyor, yani kullanıcı hiçbir ipucu göremiyor.
+ * ------------------------------------------------------------------------ */
+
+import { pinToLockfile } from '../lib/packager.mjs';
+
+function fixture(pkg, lock) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pin-'));
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg, null, 2));
+  if (lock) fs.writeFileSync(path.join(dir, 'package-lock.json'), JSON.stringify(lock, null, 2));
+  return dir;
+}
+
+const LOCK = {
+  packages: {
+    'node_modules/next': { version: '16.1.1' },
+    'node_modules/react': { version: '19.2.3' },
+    'node_modules/typescript': { version: '5.9.2' },
+  },
+};
+
+test('caret aralıkları lockfile sürümüne sabitleniyor', () => {
+  const dir = fixture(
+    { dependencies: { next: '^16.1.1', react: '^19.2.3' }, devDependencies: { typescript: '~5.9.0' } },
+    LOCK
+  );
+  const out = pinToLockfile(dir);
+  const pkg = JSON.parse(out.content);
+  assert.equal(pkg.dependencies.next, '16.1.1');
+  assert.equal(pkg.dependencies.react, '19.2.3');
+  assert.equal(pkg.devDependencies.typescript, '5.9.2');
+  assert.equal(out.pinned.length, 3);
+});
+
+test('lockfile yoksa sabitleme yapılmıyor', () => {
+  const dir = fixture({ dependencies: { next: '^16.1.1' } }, null);
+  assert.equal(pinToLockfile(dir), null);
+});
+
+test('zaten kesin olan sürümler değiştirilmiyor', () => {
+  const dir = fixture({ dependencies: { next: '16.1.1', react: '19.2.3' } }, LOCK);
+  assert.equal(pinToLockfile(dir), null, 'değişiklik yoksa null dönmeli');
+});
+
+test('file:/link:/git+ tanımlarına DOKUNULMUYOR', () => {
+  /*
+   * Bunların üzerine kesin sürüm yazmak bağımlılığı başka bir pakete çevirir —
+   * yerel bir paketi npm kayıtındaki aynı adlı pakete. Sessiz ve yıkıcı olurdu.
+   */
+  const dir = fixture(
+    {
+      dependencies: {
+        next: '^16.1.1',
+        yerel: 'file:../yerel',
+        bagli: 'link:../bagli',
+        depo: 'git+https://github.com/x/y.git',
+        takma: 'npm:baska-paket@^1.0.0',
+      },
+    },
+    {
+      packages: {
+        'node_modules/next': { version: '16.1.1' },
+        'node_modules/yerel': { version: '1.0.0' },
+        'node_modules/bagli': { version: '2.0.0' },
+        'node_modules/depo': { version: '3.0.0' },
+        'node_modules/takma': { version: '4.0.0' },
+      },
+    }
+  );
+  const pkg = JSON.parse(pinToLockfile(dir).content);
+  assert.equal(pkg.dependencies.next, '16.1.1', 'sürüm aralığı sabitlenmeli');
+  assert.equal(pkg.dependencies.yerel, 'file:../yerel');
+  assert.equal(pkg.dependencies.bagli, 'link:../bagli');
+  assert.equal(pkg.dependencies.depo, 'git+https://github.com/x/y.git');
+  assert.equal(pkg.dependencies.takma, 'npm:baska-paket@^1.0.0');
+});
+
+test('lockfile bozuksa deploy durmuyor', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pin-'));
+  fs.writeFileSync(path.join(dir, 'package.json'), '{"dependencies":{"next":"^16.1.1"}}');
+  fs.writeFileSync(path.join(dir, 'package-lock.json'), '{ bozuk json');
+  assert.equal(pinToLockfile(dir), null);
+});
+
+test('lockfile’da olmayan bağımlılık atlanıyor', () => {
+  const dir = fixture({ dependencies: { next: '^16.1.1', bilinmeyen: '^1.0.0' } }, LOCK);
+  const pkg = JSON.parse(pinToLockfile(dir).content);
+  assert.equal(pkg.dependencies.next, '16.1.1');
+  assert.equal(pkg.dependencies.bilinmeyen, '^1.0.0', 'kilitte yoksa dokunulmamalı');
+});
+
+test('package.json’ın diğer alanları korunuyor', () => {
+  const dir = fixture(
+    { name: 'frontend', type: 'module', scripts: { build: 'next build' }, dependencies: { next: '^16.1.1' } },
+    LOCK
+  );
+  const pkg = JSON.parse(pinToLockfile(dir).content);
+  assert.equal(pkg.name, 'frontend');
+  assert.equal(pkg.type, 'module');
+  assert.equal(pkg.scripts.build, 'next build');
+});

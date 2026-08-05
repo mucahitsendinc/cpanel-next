@@ -214,6 +214,24 @@ Not supported yet:
 - Sub-path mounting (`basePath` is baked in at build time)
 - Laravel
 
+### Build and runtime must be the same version
+
+The package this tool uploads carries a `package.json` whose dependency ranges
+are rewritten to the exact versions in your `package-lock.json`. Your own file
+is never touched — only the uploaded copy.
+
+This is not a nicety. `"next": "^16.1.1"` means the build runs locally on 16.1.1
+and produces a `.next` shaped for it, while `npm install` on the server fetches
+16.3.0. Running that build under a different minor crashes **inside the
+framework** with `Cannot read properties of undefined` and a stack that says only
+`at ignore-listed frames` — no hint anywhere in your own code. Measured on a live
+account: built with next 16.1.1 / react 19.2.3, server installed 16.3.0 / 19.2.8.
+
+Uploading `package-lock.json` is not enough; CloudLinux's `install-modules` does
+not honour it. This is also why `output: 'standalone'` appears to "fix" such a
+project — it embeds the build-time `node_modules`, so no install runs on the
+server and no drift is possible.
+
 ### Things worth knowing about Passenger
 
 - Passenger does **not** provide `PORT`. It patches `listen()` and binds the app

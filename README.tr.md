@@ -211,6 +211,25 @@ Henüz desteklenmiyor:
 - Alt yol mount (`basePath` build zamanında gömülüyor)
 - Laravel
 
+### Build ile çalıştırma aynı sürümde olmalı
+
+Yüklenen pakete giden `package.json`, bağımlılık aralıkları
+`package-lock.json`'daki kesin sürümlerle değiştirilmiş hâlde gidiyor. Sizin
+dosyanıza dokunulmuyor — yalnızca gönderilen kopya değişiyor.
+
+Bu bir incelik değil. `"next": "^16.1.1"` demek, build'in yerelde 16.1.1 ile
+koşup `.next`'i o sürüme göre üretmesi; sunucudaki `npm install` ise 16.3.0
+çekiyor. O build'i farklı bir minor sürümle çalıştırınca uygulama **çerçevenin
+içinde** `Cannot read properties of undefined` ile çöküyor ve yığın izi yalnızca
+`at ignore-listed frames` diyor — kendi kodunuzda hiçbir ipucu yok. Canlı bir
+hesapta ölçüldü: build next 16.1.1 / react 19.2.3, sunucuda kurulan 16.3.0 /
+19.2.8.
+
+`package-lock.json`'ı yüklemek yetmiyor; CloudLinux'un `install-modules` komutu
+ona uymuyor. `output: 'standalone'`'ın böyle bir projeyi "düzeltiyor"
+görünmesinin sebebi de bu — build anındaki `node_modules`'ü pakete gömdüğü için
+sunucuda kurulum hiç koşmuyor, dolayısıyla kayma da olmuyor.
+
 ### Passenger hakkında bilinmesi gerekenler
 
 - Passenger `PORT` **vermiyor**. `listen()`'i yamalayıp uygulamayı kendi Unix
