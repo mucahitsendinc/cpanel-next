@@ -1,0 +1,45 @@
+{
+  "name": "cpanel-next",
+  "version": "0.1.0",
+  "description": "Deploy Next.js apps to cPanel shared hosting (Passenger / CloudLinux Node.js Selector) from your terminal.",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "Mücahit Sendinç",
+    "url": "https://muco.tr"
+  },
+  "homepage": "https://muco.tr",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "bin": {
+    "deploymanager": "bin/cli.mjs",
+    "cpanel-next": "bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "keywords": [
+    "cpanel",
+    "nextjs",
+    "deploy",
+    "passenger",
+    "cloudlinux",
+    "shared-hosting",
+    "uapi"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "adm-zip": "^0.5.16",
+    "picocolors": "^1.1.1",
+    "playwright-core": "^1.56.0"
+  },
+  "optionalDependencies": {
+    "basic-ftp": "^5.0.5"
+  }
+}

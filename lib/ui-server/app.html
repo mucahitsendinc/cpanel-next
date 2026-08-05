@@ -1,0 +1,630 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cpanel-next</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+  --fg:#e6e8ee; --dim:#8b93a5; --accent:#4ea1ff; --ok:#3ecf8e; --warn:#f5b544; --bad:#ff6b6b;
+  --radius:10px;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f6f7f9; --panel:#fff; --panel2:#f0f2f5; --line:#dfe3ea;
+         --fg:#1b1f27; --dim:#666e7d; --accent:#0b6bcb; --ok:#12855a; --warn:#a86800; --bad:#c0392b; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:7px 13px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.danger{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:600}
+button.link{background:none;border:none;padding:2px 4px;color:var(--accent);text-decoration:underline}
+input,select{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;width:100%}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+label{display:block;margin:12px 0 5px;color:var(--dim);font-size:12px;
+  text-transform:uppercase;letter-spacing:.5px}
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;
+  background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;flex-wrap:wrap}
+header .brand{font-weight:700;letter-spacing:-.3px}
+header .spacer{flex:1}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;margin-bottom:18px}
+.card h2{margin:0 0 4px;font-size:15px}
+.card p.sub{margin:0 0 14px;color:var(--dim);font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tabs button{border-radius:999px}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--dim);font-weight:600;font-size:11px;
+  text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
+  border:1px solid var(--line);color:var(--dim)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}
+.pill.warn{color:var(--warn);border-color:var(--warn)}
+.pill.bad{color:var(--bad);border-color:var(--bad)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px}
+.kv dt{color:var(--dim)}
+.kv dd{margin:0}
+.log{background:#0a0c10;color:#d5dae4;border-radius:8px;padding:12px;
+  height:340px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;white-space:pre-wrap;word-break:break-word}
+.log .s{color:#4ea1ff}
+.log .e{color:#ff6b6b}
+.log .w{color:#f5b544}
+.log .d{color:#3ecf8e}
+.msg{padding:11px 13px;border-radius:8px;margin-bottom:14px;font-size:13px}
+.msg.err{background:rgba(255,107,107,.12);border:1px solid var(--bad)}
+.msg.warn{background:rgba(245,181,68,.12);border:1px solid var(--warn)}
+.msg.info{background:rgba(78,161,255,.10);border:1px solid var(--accent)}
+.center{max-width:400px;margin:12vh auto}
+.browse{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.browse div{padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--line);font-size:13px}
+.browse div:last-child{border-bottom:none}
+.browse div:hover{background:var(--panel2)}
+.hide{display:none}
+.muted{color:var(--dim)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+progress{width:100%;height:6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const TOKEN = '__SESSION_TOKEN__';
+let LANG = '__LANG__';
+
+const S = {
+  tr:{unlock:'Kasayı aç',master:'Ana şifre',masterHint:'cPanel token\'ınız bu şifreyle şifrelendi. Şifre hiçbir yerde saklanmaz.',
+    lock:'Kilitle',overview:'Genel bakış',deploy:'Yayınla',backups:'Yedekler',logs:'Kayıtlar',
+    domains:'Domainler',apps:'Node.js uygulamaları',domain:'Domain',type:'Tür',docroot:'Belge kökü',
+    app:'Uygulama',node:'Node',status:'Durum',folder:'Klasör',owner:'Sahip',actions:'İşlemler',
+    start:'Başlat',stop:'Durdur',restart:'Yeniden başlat',none:'—',running:'çalışıyor',stopped:'durdu',
+    external:'dış',mine:'cpanel-next',noApps:'Bu hesapta Node.js uygulaması yok.',
+    project:'Yerel proje',pickProject:'Proje seç',recent:'Son kullanılanlar',browse:'Gözat',
+    up:'Üst dizin',selectThis:'Bu klasörü seç',framework:'Framework',startup:'Başlangıç',
+    package:'Paket',files:'dosya',willDeploy:'Yayınlanacak domain',appRoot:'Uygulama klasörü',
+    noBuild:'Build\'i atla (mevcut .next gönderilsin)',adopt:'Bu aracın oluşturmadığı klasörü sahiplen',
+    check:'Kontrol et',deployNow:'Yayınla',overwriteWarn:'Bu klasörün içeriği SİLİNECEK ve paketiniz açılacak.',
+    typeToConfirm:'Onaylamak için klasör adını yazın',confirmPlaceholder:'klasör adı',
+    cancel:'Vazgeç',close:'Kapat',newSub:'YENİ SUBDOMAIN',newApp:'YENİ',
+    envExcluded:'Pakete girmeyecek ortam dosyaları',otherApps:'Dokunulmayacak diğer uygulamalar',
+    live:'Yayında',failed:'Başarısız',restore:'Geri yükle',backup:'Yedek',date:'Tarih',size:'Boyut',
+    noBackups:'Yedek yok.',rollbackWarn:'Bu klasörün içeriği silinip yedek geri yazılacak.',
+    version:'Sürüm',history:'Deploy geçmişi',serverRuns:'Sunucudaki çalıştırmalar',
+    refresh:'Yenile',blockers:'Yayınlanamaz',open:'Aç',noProject:'Önce bir proje seçin.',
+    quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…'},
+  en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
+    lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
+    domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
+    app:'Application',node:'Node',status:'Status',folder:'Folder',owner:'Owner',actions:'Actions',
+    start:'Start',stop:'Stop',restart:'Restart',none:'—',running:'running',stopped:'stopped',
+    external:'external',mine:'cpanel-next',noApps:'No Node.js applications on this account.',
+    project:'Local project',pickProject:'Pick a project',recent:'Recent',browse:'Browse',
+    up:'Parent directory',selectThis:'Select this folder',framework:'Framework',startup:'Startup',
+    package:'Package',files:'files',willDeploy:'Target domain',appRoot:'Application folder',
+    noBuild:'Skip build (ship existing .next)',adopt:'Adopt a folder this tool did not create',
+    check:'Check',deployNow:'Deploy',overwriteWarn:'The contents of this folder will be DELETED and your package extracted.',
+    typeToConfirm:'Type the folder name to confirm',confirmPlaceholder:'folder name',
+    cancel:'Cancel',close:'Close',newSub:'NEW SUBDOMAIN',newApp:'NEW',
+    envExcluded:'Environment files that will not be packaged',otherApps:'Other applications that will not be touched',
+    live:'Live',failed:'Failed',restore:'Restore',backup:'Backup',date:'Date',size:'Size',
+    noBackups:'No backups.',rollbackWarn:'This folder will be emptied and the backup restored.',
+    version:'Version',history:'Deploy history',serverRuns:'Server runs',
+    refresh:'Refresh',blockers:'Not deployable',open:'Open',noProject:'Pick a project first.',
+    quota:'quota',regime:'Regime',account:'Account',working:'Working…'}
+};
+const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
+
+/* ------------------------------------------------------------------ api */
+async function api(pathname, opts = {}) {
+  const res = await fetch('/api/' + pathname, {
+    ...opts,
+    headers: { 'X-CN-Token': TOKEN, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || ('HTTP ' + res.status));
+    err.hint = data.hint;
+    throw err;
+  }
+  return data;
+}
+const post = (p, body) => api(p, { method: 'POST', body: JSON.stringify(body || {}) });
+
+/* ----------------------------------------------------------------- util */
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined && v !== false) n.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    n.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return n;
+};
+const bytes = (n) => {
+  const u = ['B', 'KB', 'MB', 'GB'];
+  let v = Number(n || 0), i = 0;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + ' ' + u[i];
+};
+const app = document.getElementById('app');
+const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); };
+
+let ST = { locked: true, profiles: [], profile: null, tab: 'overview', overview: null, deploy: {} };
+
+function showError(container, err) {
+  container.prepend(el('div', { class: 'msg err' },
+    el('strong', {}, err.message),
+    err.hint ? el('div', { class: 'muted' }, err.hint) : null));
+}
+
+/* ---------------------------------------------------------------- render */
+async function boot() {
+  const st = await api('status');
+  ST.locked = st.locked;
+  ST.profiles = st.profiles;
+  LANG = st.lang || LANG;
+  if (!ST.profile && st.profiles.length) ST.profile = st.profiles[0].name;
+  ST.locked ? renderUnlock() : renderMain();
+}
+
+function renderUnlock(errMsg) {
+  clear(app);
+  const box = el('div', { class: 'center' });
+  const input = el('input', { type: 'password', autofocus: 'true' });
+  const btn = el('button', { class: 'primary', style: 'width:100%;margin-top:14px' }, s('unlock'));
+
+  const submit = async () => {
+    btn.disabled = true;
+    try {
+      const r = await post('unlock', { master: input.value });
+      ST.locked = false; ST.profiles = r.profiles;
+      ST.profile = r.profiles[0]?.name ?? null;
+      renderMain();
+    } catch (err) {
+      btn.disabled = false;
+      renderUnlock(err.message);
+    }
+  };
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+
+  box.append(
+    el('div', { class: 'card' },
+      el('h2', {}, 'cpanel-next'),
+      el('p', { class: 'sub' }, s('masterHint')),
+      errMsg ? el('div', { class: 'msg err' }, errMsg) : null,
+      el('label', {}, s('master')), input, btn));
+  app.append(box);
+  setTimeout(() => input.focus(), 30);
+}
+
+function renderMain() {
+  clear(app);
+  const sel = el('select', { style: 'width:auto;min-width:230px',
+    onchange: (e) => { ST.profile = e.target.value; ST.overview = null; renderMain(); } },
+    ...ST.profiles.map((p) => el('option', { value: p.name, selected: p.name === ST.profile },
+      p.user + '@' + p.host)));
+
+  const langBtn = el('button', { onclick: async () => {
+    LANG = LANG === 'tr' ? 'en' : 'tr';
+    await post('lang', { lang: LANG });
+    renderMain();
+  } }, LANG === 'tr' ? 'EN' : 'TR');
+
+  app.append(el('header', {},
+    el('span', { class: 'brand' }, 'cpanel-next'), sel, el('span', { class: 'spacer' }), langBtn,
+    el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock'))));
+
+  const main = el('main', {});
+  const tabs = el('div', { class: 'tabs' },
+    ...['overview', 'deploy', 'backups', 'logs'].map((k) =>
+      el('button', { class: ST.tab === k ? 'on' : '', onclick: () => { ST.tab = k; renderMain(); } }, s(k))));
+  main.append(tabs);
+
+  const body = el('div', {});
+  main.append(body);
+  app.append(main);
+
+  ({ overview: viewOverview, deploy: viewDeploy, backups: viewBackups, logs: viewLogs })[ST.tab](body);
+}
+
+/* -------------------------------------------------------------- overview */
+async function viewOverview(root, refresh) {
+  root.append(el('div', { class: 'card' }, s('working')));
+  try {
+    if (!ST.overview || refresh) ST.overview = await api('overview/' + encodeURIComponent(ST.profile) + (refresh ? '?refresh=1' : ''));
+  } catch (err) { clear(root); return showError(root, err); }
+  const o = ST.overview;
+  clear(root);
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'flex:1' }, o.profile.user + '@' + o.profile.host),
+      el('button', { onclick: () => { const r = root; clear(r); viewOverview(r, true); } }, s('refresh'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('regime')), el('dd', {}, o.regimeLabel),
+      el('dt', {}, s('quota')), el('dd', {}, o.apps.length + ' / ' + (o.maxApps ?? '∞')))));
+
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('domains')),
+    el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('domain')), el('th', {}, s('type')),
+        el('th', {}, s('docroot')), el('th', {}, s('app')))),
+      el('tbody', {}, ...o.domains.map((d) => {
+        const a = o.apps.find((x) => x.domain === d.domain);
+        return el('tr', {},
+          el('td', {}, el('a', { href: 'https://' + d.domain, target: '_blank', rel: 'noreferrer' }, d.domain)),
+          el('td', {}, el('span', { class: 'pill' }, d.typeLabel)),
+          el('td', { class: 'mono muted' }, d.docroot || s('none')),
+          el('td', { class: 'mono' }, a ? a.name : s('none')));
+      })))));
+
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('apps')),
+    o.apps.length === 0 ? el('p', { class: 'sub' }, s('noApps')) :
+    el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('app')), el('th', {}, s('domain')),
+        el('th', {}, s('node')), el('th', {}, s('status')), el('th', {}, s('folder')),
+        el('th', {}, s('owner')), el('th', {}, s('actions')))),
+      el('tbody', {}, ...o.apps.map((a) => {
+        const on = /start|run/i.test(String(a.status ?? (a.enabled ? 'started' : 'stopped')));
+        const act = (action) => async (e) => {
+          e.target.disabled = true;
+          try { await post('app-action', { profile: ST.profile, appRoot: a.path, action }); }
+          catch (err) { alert(err.message); }
+          const r = root; clear(r); viewOverview(r, true);
+        };
+        return el('tr', {},
+          el('td', { class: 'mono' }, a.name),
+          el('td', {}, a.domain || s('none')),
+          el('td', {}, a.nodeVersion || s('none')),
+          el('td', {}, el('span', { class: 'pill ' + (on ? 'ok' : 'warn') }, on ? s('running') : s('stopped'))),
+          el('td', { class: 'mono muted' }, '~/' + a.path),
+          el('td', {}, el('span', { class: 'pill ' + (a.owned ? 'ok' : '') }, a.owned ? s('mine') : s('external'))),
+          el('td', {}, el('div', { class: 'row' },
+            el('button', { onclick: act(on ? 'stop' : 'start') }, on ? s('stop') : s('start')),
+            el('button', { onclick: act('restart') }, s('restart')))));
+      })))));
+}
+
+/* ---------------------------------------------------------------- deploy */
+async function viewDeploy(root) {
+  const d = ST.deploy;
+  clear(root);
+
+  /* proje seçimi */
+  const projCard = el('div', { class: 'card' }, el('h2', {}, s('project')));
+  root.append(projCard);
+
+  if (!d.path) {
+    const list = el('div', {});
+    projCard.append(el('p', { class: 'sub' }, s('pickProject')), list);
+    api('recent').then((r) => {
+      if (r.items.length) {
+        list.append(el('label', {}, s('recent')));
+        list.append(el('div', { class: 'browse' }, ...r.items.map((i) =>
+          el('div', { onclick: () => pick(i.path) }, i.name, el('span', { class: 'muted mono' }, '  ' + i.path)))));
+      }
+      list.append(el('label', {}, s('browse')));
+      const browseBox = el('div', {});
+      list.append(browseBox);
+      renderBrowse(browseBox, null);
+    });
+    return;
+  }
+
+  /* proje seçildi */
+  projCard.append(
+    el('div', { class: 'row' },
+      el('code', { style: 'flex:1' }, d.path),
+      el('button', { onclick: () => { ST.deploy = {}; renderMain(); } }, s('cancel'))));
+
+  const info = el('div', {});
+  projCard.append(info);
+
+  if (!d.project) {
+    info.append(el('p', { class: 'sub' }, s('working')));
+    try {
+      const r = await api('project?path=' + encodeURIComponent(d.path));
+      d.project = r.project; d.plan = r.plan;
+    } catch (err) { return showError(root, err); }
+    return viewDeploy(root);
+  }
+
+  clear(info);
+  if (!d.project.deployable) {
+    info.append(el('div', { class: 'msg err' }, el('strong', {}, s('blockers')),
+      ...d.project.blockers.map((b) => el('div', {}, '• ' + b))));
+    return;
+  }
+  info.append(el('dl', { class: 'kv' },
+    el('dt', {}, s('framework')), el('dd', {}, 'Next.js ' + (d.project.nextVersion ?? '') + ' · ' + (d.project.router ?? '')),
+    el('dt', {}, s('startup')), el('dd', { class: 'mono' }, d.project.startupFile),
+    el('dt', {}, s('package')), el('dd', {}, d.plan ? d.plan.files + ' ' + s('files') + ' · ' + bytes(d.plan.bytes) : '')));
+  for (const w of d.project.warnings) info.append(el('div', { class: 'msg warn' }, w));
+  if (d.plan?.skippedEnv?.length) {
+    info.append(el('div', { class: 'msg info' }, s('envExcluded') + ': ' + d.plan.skippedEnv.join(', ')));
+  }
+
+  /* hedef */
+  if (!ST.overview) {
+    try { ST.overview = await api('overview/' + encodeURIComponent(ST.profile)); }
+    catch (err) { return showError(root, err); }
+  }
+  const o = ST.overview;
+
+  const targetCard = el('div', { class: 'card' }, el('h2', {}, s('willDeploy')));
+  const domSel = el('select', {},
+    ...o.domains.filter((x) => x.type !== 'parked').map((x) =>
+      el('option', { value: x.domain, selected: x.domain === d.domain }, x.domain + ' — ' + x.typeLabel)));
+  const rootIn = el('input', { value: d.appRoot ?? '', placeholder: 'myappnext' });
+  domSel.addEventListener('change', () => {
+    if (!rootIn.value) rootIn.value = suggest(domSel.value, o.apps);
+  });
+  if (!rootIn.value) rootIn.value = suggest(domSel.value, o.apps);
+
+  const noBuild = el('input', { type: 'checkbox', style: 'width:auto' });
+  const adopt = el('input', { type: 'checkbox', style: 'width:auto' });
+  const out = el('div', {});
+
+  targetCard.append(
+    el('label', {}, s('domain')), domSel,
+    el('label', {}, s('appRoot')), rootIn,
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px' }, noBuild, ' ' + s('noBuild'))),
+    el('div', { class: 'row' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px' }, adopt, ' ' + s('adopt'))),
+    el('div', { class: 'row', style: 'margin-top:16px' },
+      el('button', { class: 'primary', onclick: async (e) => {
+        e.target.disabled = true; clear(out);
+        try {
+          const pf = await post('preflight', {
+            profile: ST.profile, domain: domSel.value, appRoot: rootIn.value, adopt: adopt.checked });
+          renderConfirm(out, pf, {
+            domain: domSel.value, appRoot: rootIn.value,
+            noBuild: noBuild.checked, adopt: adopt.checked });
+        } catch (err) { showError(out, err); }
+        e.target.disabled = false;
+      } }, s('check'))),
+    out);
+  root.append(targetCard);
+
+  function pick(p) { ST.deploy = { path: p }; renderMain(); }
+  async function renderBrowse(box, start) {
+    clear(box);
+    let r;
+    try { r = await api('browse' + (start ? '?path=' + encodeURIComponent(start) : '')); }
+    catch (err) { return showError(box, err); }
+    box.append(el('div', { class: 'mono muted', style: 'margin-bottom:6px' }, r.path));
+    const list = el('div', { class: 'browse' });
+    if (r.parent) list.append(el('div', { onclick: () => renderBrowse(box, r.parent) }, '⬆ ' + s('up')));
+    for (const e of r.entries) {
+      list.append(el('div', { onclick: () => renderBrowse(box, e.path) },
+        (e.isProject ? '📦 ' : '📁 ') + e.name));
+    }
+    box.append(list);
+    box.append(el('button', { style: 'margin-top:10px', onclick: () => pick(r.path) }, s('selectThis')));
+  }
+}
+
+function suggest(domain, apps) {
+  const base = (domain.split('.')[0] || 'app').replace(/[^a-z0-9]/gi, '');
+  let c = base + 'next', n = 2;
+  while (apps.some((a) => a.path === c)) { c = base + 'next' + n; n++; }
+  return c;
+}
+
+function renderConfirm(out, pf, form) {
+  clear(out);
+  const box = el('div', { class: 'card', style: 'margin:16px 0 0' });
+
+  box.append(el('dl', { class: 'kv' },
+    el('dt', {}, s('domain')), el('dd', {}, pf.target.domain +
+      (pf.target.kind === 'new-subdomain' ? '  ' : '')),
+    el('dt', {}, s('appRoot')), el('dd', { class: 'mono' }, '~/' + pf.appRoot +
+      (pf.dirExists ? '' : '  ' + s('newApp')))));
+
+  if (pf.target.kind === 'new-subdomain') {
+    box.append(el('div', { class: 'msg info' }, s('newSub') + ': ' + pf.target.domain));
+  }
+  if (pf.otherApps?.length) {
+    box.append(el('div', { class: 'msg info' }, s('otherApps') + ': ' +
+      pf.otherApps.map((a) => a.name).join(', ')));
+  }
+  if (pf.ownership && pf.ownership.owned === false) {
+    box.append(el('div', { class: 'msg err' }, el('strong', {}, pf.ownership.error),
+      pf.ownership.hint ? el('div', { class: 'muted' }, pf.ownership.hint) : null));
+    out.append(box);
+    return;
+  }
+
+  let confirmIn = null;
+  if (pf.destructive) {
+    /* Yazarak onay — tek tıkla üzerine yazma YOK. Sunucu da bunu doğruluyor. */
+    box.append(el('div', { class: 'msg warn' }, s('overwriteWarn')));
+    box.append(el('label', {}, s('typeToConfirm')));
+    confirmIn = el('input', { placeholder: s('confirmPlaceholder') });
+    box.append(confirmIn);
+  }
+
+  const go = el('button', { class: pf.destructive ? 'danger' : 'primary', style: 'margin-top:14px' },
+    s('deployNow'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      const r = await post('deploy', {
+        profile: ST.profile, projectPath: ST.deploy.path,
+        domain: form.domain, appRoot: pf.appRoot,
+        noBuild: form.noBuild, adopt: form.adopt,
+        confirm: confirmIn ? confirmIn.value : undefined,
+      });
+      renderJob(out, r.jobId);
+    } catch (err) { go.disabled = false; showError(box, err); }
+  });
+  box.append(el('div', {}, go));
+  out.append(box);
+}
+
+/* ------------------------------------------------------------------- job */
+function renderJob(out, jobId) {
+  clear(out);
+  const log = el('div', { class: 'log' });
+  const head = el('div', { class: 'row', style: 'margin-bottom:10px' }, el('strong', {}, s('working')));
+  const bar = el('progress', { class: 'hide' });
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' }, head, bar, log));
+
+  const line = (cls, text) => {
+    log.append(el('div', { class: cls }, text));
+    log.scrollTop = log.scrollHeight;
+  };
+
+  // EventSource özel başlık gönderemez; yalnızca bu okuma ucu için jetonu
+  // sorguyla taşıyoruz (sunucu tarafında da böyle bekleniyor).
+  const es = new EventSource('/api/jobs/' + jobId + '/events?t=' + encodeURIComponent(TOKEN));
+  es.onerror = () => { /* sunucu kapanınca sessizce biter */ };
+  es.onmessage = (m) => {
+    const e = JSON.parse(m.data);
+    if (e.type === 'progress') {
+      bar.classList.remove('hide');
+      bar.max = e.total || 0; bar.value = e.sent || 0;
+      head.textContent = bytes(e.sent) + ' / ' + bytes(e.total);
+      return;
+    }
+    if (e.type === 'step') {
+      // Paket boyutu ham bayt olarak geliyor; biçimlendirme arayüzün işi.
+      const text = e.key === 'deploy.packed'
+        ? e.text.replace(String(e.params.size), bytes(e.params.size))
+        : e.text;
+      line('s', '▸ ' + text);
+    }
+    else if (e.type === 'warn') line('w', '! ' + e.text);
+    else if (e.type === 'info') line('', '  ' + e.text);
+    else if (e.type === 'remote') line('', '  ' + e.text + (e.pct ? ' (' + e.pct + '%)' : ''));
+    else if (e.type === 'output') line('', e.text.trimEnd());
+    else if (e.type === 'done') {
+      line('d', '✓ ' + s('live'));
+      clear(head); head.append(el('span', { class: 'pill ok' }, s('live')));
+      es.close();
+      api('jobs/' + jobId).then((j) => {
+        if (j.result?.url) {
+          head.append(el('a', { href: j.result.url, target: '_blank', rel: 'noreferrer' }, j.result.url));
+        }
+        ST.overview = null;
+      });
+    } else if (e.type === 'failed') {
+      line('e', '✗ ' + (e.text || s('failed')));
+      clear(head); head.append(el('span', { class: 'pill bad' }, s('failed')));
+      es.close();
+    }
+  };
+}
+
+/* -------------------------------------------------------------- backups */
+async function viewBackups(root) {
+  clear(root);
+  root.append(el('div', { class: 'card' }, s('working')));
+  let r;
+  try { r = await api('backups?profile=' + encodeURIComponent(ST.profile)); }
+  catch (err) { clear(root); return showError(root, err); }
+  clear(root);
+
+  if (!r.items.length) return root.append(el('div', { class: 'card' }, el('p', { class: 'sub' }, s('noBackups'))));
+
+  const out = el('div', {});
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('backups')),
+    el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('app')), el('th', {}, s('date')),
+        el('th', {}, s('size')), el('th', {}, s('actions')))),
+      el('tbody', {}, ...r.items.map((b) => el('tr', {},
+        el('td', { class: 'mono' }, b.appRoot),
+        el('td', { class: 'muted' }, fmtStamp(b.stamp)),
+        el('td', { class: 'muted' }, b.size ? bytes(b.size) : ''),
+        el('td', {}, el('button', { onclick: () => askRestore(out, b) }, s('restore'))))))),
+    out));
+}
+
+function fmtStamp(x) {
+  const m = String(x).match(/^(\d{4})(\d{2})(\d{2})(?:-(\d{2})(\d{2})(\d{2}))?$/);
+  return m ? m[3] + '.' + m[2] + '.' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : '') : x;
+}
+
+function askRestore(out, b) {
+  clear(out);
+  const input = el('input', { placeholder: s('confirmPlaceholder') });
+  const go = el('button', { class: 'danger', style: 'margin-top:12px' }, s('restore'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      const r = await post('rollback', {
+        profile: ST.profile, appRoot: b.appRoot, backup: b.name, confirm: input.value });
+      renderJob(out, r.jobId);
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg warn' }, s('rollbackWarn')),
+    el('code', {}, '~/' + b.appRoot + '  ←  ' + b.name),
+    el('label', {}, s('typeToConfirm')), input, go));
+}
+
+/* ----------------------------------------------------------------- logs */
+async function viewLogs(root) {
+  clear(root);
+  root.append(el('div', { class: 'card' }, s('working')));
+  const appRoot = ST.overview?.apps?.[0]?.path ?? '';
+  let r;
+  try {
+    r = await api('logs?profile=' + encodeURIComponent(ST.profile) +
+      (appRoot ? '&appRoot=' + encodeURIComponent(appRoot) : ''));
+  } catch (err) { clear(root); return showError(root, err); }
+  clear(root);
+
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('serverRuns')),
+    r.runs.length === 0 ? el('p', { class: 'sub' }, s('none')) :
+      el('div', {}, ...r.runs.map((run) => el('div', { style: 'margin-bottom:14px' },
+        el('div', { class: 'row' },
+          el('span', { class: 'pill ' + (run.done ? (run.ok ? 'ok' : 'bad') : 'warn') },
+            run.done ? (run.ok ? '✓' : '✗') : (run.progress ?? 0) + '%'),
+          el('code', {}, run.step ?? '')),
+        run.output ? el('div', { class: 'log', style: 'height:180px' }, String(run.output).slice(-4000)) : null)))));
+
+  if (r.history?.length) {
+    root.append(el('div', { class: 'card' },
+      el('h2', {}, s('history')),
+      el('table', {},
+        el('thead', {}, el('tr', {}, el('th', {}, s('date')), el('th', {}, s('version')),
+          el('th', {}, s('package')), el('th', {}, s('status')))),
+        el('tbody', {}, ...r.history.slice(-15).reverse().map((h) => el('tr', {},
+          el('td', { class: 'muted' }, new Date(h.date).toLocaleString()),
+          el('td', { class: 'mono' }, h.version ?? ''),
+          el('td', {}, (h.files ?? '') + ' ' + s('files') + ' · ' + bytes(h.size ?? 0)),
+          el('td', {}, el('span', { class: 'pill ' + (h.ok === false ? 'bad' : 'ok') },
+            h.ok === false ? '✗' : '✓'))))))));
+  }
+}
+
+boot().catch((e) => { app.append(el('div', { class: 'msg err' }, e.message)); });
+</script>
+</body>
+</html>
