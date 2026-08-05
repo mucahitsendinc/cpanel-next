@@ -1,245 +1,270 @@
 # cpanel-next
 
-Next.js projelerini cPanel paylaşımlı hostinge terminalden yayınlar.
+Deploy Next.js projects to cPanel shared hosting from your terminal — or from a
+local web interface.
 
 ```bash
 npm i -g cpanel-next
 
-cd ~/projeler/magaza
+cd ~/projects/shop
 deploymanager
 ```
 
-Araç projeyi tarar, cPanel hesabınızdaki domainleri listeler, Node.js
-uygulamasını oluşturur (yoksa), paketi yükler, bağımlılıkları kurar ve
-uygulamayı başlatır.
+**All you need is your cPanel login.** No WHM, no root, no SSH.
 
-**Gereken tek şey cPanel giriş bilgileriniz.** WHM, root veya SSH gerekmiyor.
+*[Türkçe README](./README.tr.md)*
 
 ---
 
-## Nasıl çalışıyor
+## What it does
 
-cPanel'de bazı işlerin API'si var, bazılarının hiç yok. Araç üç katman kullanır
-ve gerektiğinde kendiliğinden bir alt katmana düşer:
+You run it inside a project. It detects the framework, lists the domains on your
+cPanel account, creates the Node.js application if there isn't one, uploads a
+build, installs dependencies and starts the app. Subsequent releases are one
+command:
 
-| Katman | Ne | Ne zaman |
+```bash
+deploymanager update
+```
+
+While the application restarts, visitors get a maintenance page instead of a
+server error — and it refreshes itself the moment the site is back.
+
+---
+
+## Why this is harder than it looks
+
+cPanel has an API for some things and none at all for others, and the gaps are
+exactly where deployment lives. This tool works around them with three tiers and
+falls to the next one on its own:
+
+| Tier | Mechanism | When |
 |---|---|---|
-| **Token API** | cPanel API token → `:2083/execute/` UAPI | Varsayılan. Hızlı, kırılgan değil. |
-| **Oturum HTTP** | cPanel'e giriş yapıp `cpsess` jetonuyla düz HTTP | Token'ın yetmediği yer: API2, CloudLinux uçları |
-| **Tarayıcı** | Headless Chromium | Yalnızca giriş yapılamadığında |
+| **Token API** | cPanel API token → `:2083/execute/` UAPI | Default. Fast, not fragile. |
+| **Session HTTP** | Log in, then plain HTTP with the `cpsess` token | API2 endpoints, CloudLinux |
+| **Browser** | Headless Chromium | Only when login itself fails |
 
-Tarayıcı **yalnızca oturum açmak için** kullanılır; sonrası düz HTTP'dir. Bu
-yüzden cPanel teması değiştiğinde araç kırılmaz.
+The browser is used **only to log in**; everything after that is plain HTTP, so a
+cPanel theme change doesn't break the tool. Most users never download Chromium at
+all.
 
-### İlk çalıştırma
+### Two Node.js regimes, detected not assumed
+
+- **cPanel Application Manager** (`PassengerApps` UAPI, cPanel 66+) — pure API
+- **CloudLinux Node.js Selector** — has *no* API of any kind, so commands run
+  through cPanel's own cron
+
+`deploymanager doctor` tells you which one you're on and what works.
+
+### A job queue, because cron is slow
+
+Registering a one-shot cron for every command meant waiting 0-60s before anything
+happened — the longest single step of a repeat deploy. Instead a long-lived
+listener watches a job directory and picks work up in about two seconds. A
+permanent one-line cron only checks that the listener is alive and relaunches it.
+
+Measured on a live CloudLinux account: **4-6s per job, against 0-60s before.**
+A full `update` went from ~96s to ~51s.
+
+---
+
+## First run
 
 ```bash
 deploymanager login
 ```
 
-1. Sunucu adı, kullanıcı adı ve cPanel şifreniz sorulur
-2. Araç cPanel'e giriş yapar
-3. **Kendine bir API token üretir** (`Tokens::create_full_access`)
-4. Bir **ana şifre** belirlemeniz istenir
-5. Token bu ana şifreyle şifrelenip `~/.cpanel-next/config.json` dosyasına
-   0600 izniyle yazılır
-6. **cPanel şifreniz hiçbir yere yazılmaz**
+1. Server, username and your cPanel password
+2. The tool logs in and **creates an API token for itself**
+3. You choose a **master password**
+4. The token is encrypted with it (scrypt + AES-256-GCM), stored `0600`
+5. **Your cPanel password is never written anywhere**
 
-Sonraki çalıştırmalarda tarayıcı hiç açılmaz; yalnızca ana şifreniz sorulur.
+After that the browser never opens; only the master password is asked.
 
-Token'ı istediğiniz an cPanel → **Security → Manage API Tokens** sayfasından
-iptal edebilirsiniz.
+> cPanel API tokens cannot be scoped — the function is literally called
+> `create_full_access`. The token can reach everything your account can. That is
+> a cPanel limitation, not a choice this tool made. Revoke it any time from
+> cPanel → Security → Manage API Tokens.
 
-> cPanel API token'ları kapsamlandırılamaz — fonksiyonun adı birebir
-> `create_full_access`. Token, hesabınızın erişebildiği her şeye erişir.
-> Bu bir cPanel kısıtı, aracın tercihi değil.
-
-### Ana şifre
-
-Cihazda saklanan token, ana şifrenizden türetilen bir anahtarla şifrelenir
-(scrypt + AES-256-GCM). Ana şifre **hiçbir yerde saklanmaz**.
-
-- **Unutursanız kayıtlı bilgiler açılamaz.** Bu kasıtlı — saklanan bir şifre
-  koruma sağlamaz. `deploymanager logout` ile profili silip yeniden
-  bağlanabilirsiniz.
-- **Karmaşıklık şartı yoktur.** `123` de diyebilirsiniz; tehdit modeli sizin
-  kararınız.
-- Tek ana şifre bütün profilleri açar; sunucu başına ayrı şifre gerekmez.
-- Otomasyon için `CPANEL_NEXT_MASTER_PASSWORD` ortam değişkeni kullanılabilir.
+**Forget the master password and the stored data cannot be opened.** That is
+deliberate; a password that is stored protects nothing. There are no complexity
+rules — `123` is allowed, the threat model is yours.
 
 ---
 
-## Desteklenen sunucular
+## Commands
 
-Araç iki farklı Node.js rejimini de tanır ve hangisinde olduğunuzu kendisi
-tespit eder:
+```
+deploymanager              deploy the project in this directory
+deploymanager update       redeploy a linked project, asks nothing
+deploymanager login        connect and create a token
+deploymanager logout       remove the saved profile
+deploymanager status       domains and applications
+deploymanager apps         list Node.js applications
+deploymanager rollback     restore a previous release
+deploymanager logs         server output of the last run
+deploymanager doctor       connectivity and environment check
+deploymanager ui           open the local web interface
+deploymanager config       default interface and language
+deploymanager maintenance  turn the maintenance page on/off
+```
 
-- **cPanel Application Manager** (`PassengerApps` UAPI, cPanel 66+) — saf API,
-  shell gerekmez
-- **CloudLinux Node.js Selector** — API'si olmadığı için komutlar cPanel'in
-  kendi cron'u üzerinden çalıştırılır (SSH gerekmez)
+Useful flags: `--dry-run`, `--domain`, `--app-root`, `--no-build`,
+`--clean-modules`, `--confirm <name>`, `--web` / `--terminal`, `--lang tr|en`,
+`-y`, `-v`.
 
-`deploymanager doctor` hangisinde olduğunuzu ve nelerin çalıştığını gösterir.
+Environment: `CPANEL_NEXT_MASTER_PASSWORD`, `CPANEL_NEXT_PASSWORD`,
+`CPANEL_NEXT_TOKEN`, `CPANEL_NEXT_HOST`, `CPANEL_NEXT_USER`, `CPANEL_NEXT_LANG`.
 
 ---
 
-## Komutlar
-
-```
-deploymanager              bulunduğun dizindeki projeyi yayınla (etkileşimli)
-deploymanager deploy       aynısı, bayraklarla
-deploymanager login        bağlan ve token üret
-deploymanager logout       kayıtlı profili sil
-deploymanager status       domainleri ve uygulamaları göster
-deploymanager apps         hesaptaki Node.js uygulamalarını listele
-deploymanager rollback     önceki sürüme dön
-deploymanager logs         son çalıştırmanın sunucu çıktısı
-deploymanager doctor       bağlantı ve ortam denetimi
-deploymanager ui           yerel web arayüzünü aç
-deploymanager config       varsayılan arayüz ve dil
-```
-
-### Terminal mi, web mi
-
-`deploymanager` komutsuz çalıştırıldığında kayıtlı tercihinize göre ya
-terminal akışını ya da web arayüzünü açar. Tercih ilk çalıştırmada bir kez
-sorulur.
-
-```bash
-deploymanager config ui web       # varsayılanı web yap
-deploymanager config ui terminal  # varsayılanı terminal yap
-deploymanager --web               # yalnızca bu çalıştırma için web
-deploymanager --terminal          # yalnızca bu çalıştırma için terminal
-```
-
-Web tercihi seçiliyse: bir proje dizininde `deploymanager` yazarsınız,
-tarayıcı o proje seçili hâlde açılır, **terminal bekler**. Tarayıcıyı
-kapattığınızda terminale dönülür (arayüzdeki "Terminale dön" düğmesi de
-aynı işi yapar, beklemeden).
-
-Kapanma tespiti kalp atışıyla yapılır: sayfa düzenli ping atar, ping
-kesilince ~12 saniye içinde çıkılır. `beforeunload`/`sendBeacon`
-kullanılmıyor çünkü sekme çökerse, ağ koparsa veya tarayıcı beacon'ı
-düşürürse hiç gelmez; atışın yokluğu ise her durumda doğru sinyaldir.
-
-**Deploy sürerken terminale dönülmez.** Süreci öldürmek yarım açılmış bir
-uygulama bırakırdı.
-
-İki arayüz de aynı işleri yapar: hesap ekleme/silme, deploy, geri alma,
-başlat/durdur/yeniden başlat, kayıtlar, dil ve arayüz ayarı.
-
-### Web arayüzü
+## Web interface
 
 ```bash
 deploymanager ui
 ```
 
-Tarayıcıda açılır; hesaplarınızı, domainleri ve uygulamaları tıklayarak
-yönetirsiniz: deploy (canlı log akışıyla), geri alma, başlat/durdur/yeniden
-başlat, kayıtlar.
+Manage accounts, domains and applications by clicking: deploy with a live log,
+roll back, start/stop/restart, remove, read logs, add and remove cPanel accounts.
 
-Arayüz güvenliği, sonradan eklenmiş bir katman değil:
+If you set the web interface as your default, running `deploymanager` in a
+project opens the browser with that project selected and **the terminal waits**.
+Close the browser and you're back in the terminal.
 
-- Sunucu **yalnızca `127.0.0.1`**'e bağlanır; ağdaki başka bir makine erişemez.
-- `Host` başlığı doğrulanır. **DNS rebinding** gerçek bir saldırıdır: kötü
-  niyetli bir site kendi alan adını `127.0.0.1`'e çözdürüp tarayıcınıza bu
-  sunucuya istek attırabilir. Beklenmedik `Host` gelirse istek hiç işlenmez.
-- Her API çağrısı özel bir başlık ister; bu, çapraz kökenli form/img/script
-  isteklerini yapısal olarak eler (CSRF).
-- **cPanel token'ınız tarayıcıya hiç gönderilmez.** Sunucu bellekte tutar.
-- Kasa 15 dakika işlem olmazsa kendini kilitler.
-- Yıkıcı deploy'da klasör adını **yazarak onay** şartı sunucu tarafında
-  zorunludur — arayüzü atlayıp API'yi doğrudan çağırsanız da geçilemez.
-- Uygulama **silme** özelliği bilerek yoktur.
+Closing is detected by heartbeat rather than `beforeunload`/`sendBeacon` — a
+beacon never arrives if the tab crashes, the network drops or the browser
+discards it, whereas the absence of a heartbeat is a correct signal every time.
+**A running deploy always wins over the exit signal.**
 
-Deploy işleri sunucuda yaşar: sekmeyi kapatsanız da devam ederler.
+Security is the first thing in that server, not a layer added later:
 
-Sık kullanılan bayraklar:
-
-```
---dry-run          hiçbir şey yazma, ne yapılacağını göster
---domain <d>       domaini sormadan belirle
---app-root <ad>    sunucudaki uygulama klasörü
---no-build         mevcut .next çıktısını gönder
---confirm <ad>     yıkıcı işlemi onayla (app-root adını birebir ver)
--y, --yes          onayları geç
--v, --verbose      ayrıntılı çıktı
-```
-
-Ortam değişkenleri: `CPANEL_NEXT_MASTER_PASSWORD`, `CPANEL_NEXT_PASSWORD`,
-`CPANEL_NEXT_TOKEN`, `CPANEL_NEXT_HOST`, `CPANEL_NEXT_USER`,
-`CPANEL_NEXT_LANG`.
-
-### Dil
-
-Arayüz Türkçe ve İngilizce. Dil sırayla şuradan seçilir: `--lang tr|en` →
-`CPANEL_NEXT_LANG` → sistem yereli (`LC_ALL`/`LANG`) → İngilizce.
-
-```bash
-deploymanager --lang en
-CPANEL_NEXT_LANG=tr deploymanager
-```
-
-`--verbose` izleri kasten çevrilmez; hata ayıklama çıktısının hata
-raporlarında ve arama sonuçlarında eşleşebilmesi için tek dilde kalması
-gerekir.
+- Bound to `127.0.0.1` only
+- `Host` header validated — **DNS rebinding** is a real attack against localhost
+  servers, and a request with an unexpected `Host` is never processed
+- Every API call requires a custom header, which structurally eliminates
+  cross-origin form/img/script requests (CSRF)
+- **Your cPanel token is never sent to the browser**; the server holds it
+- The vault re-locks after 15 idle minutes
+- Destructive steps require typing the exact folder name, **enforced
+  server-side** — calling the endpoint directly doesn't get around it
 
 ---
 
-## Güvenlik
+## Lifecycle hooks
 
-Bu araç hedef klasörün içeriğini silip yerine paketi açar. Yanlış klasör
-seçilirse yayında olan bir site gider. Buna karşı:
+Declare commands in `.cpanel-next.json` to run on the server around dependency
+installation:
 
-1. **Sahiplik işareti** — araç oluşturduğu her klasöre
-   `.cpanel-next-owner.json` koyar. Var olan bir klasörün üzerine yazmak için
-   bu işaret **zorunludur**. Elle kurduğunuz ya da başka bir araca ait bir
-   klasör asla silinmez.
-2. **Korumalı adlar** — `public_html`, `mail`, `etc`, `logs`, `nodevenv` … ve
-   nokta ile başlayan her dizin reddedilir.
-3. **Belge kökü çakışması** — hesabınızdaki herhangi bir domainin belge köküne
-   eşit bir uygulama klasörü reddedilir. Aksi hâlde kaynak kodunuz ve `.env`
-   dosyanız internete açık olurdu.
-4. **Yazarak onay** — yıkıcı işlemlerde `y/N` değil, klasör adını elle
-   yazmanız istenir.
-5. **Yedek** — üzerine yazmadan önce `~/.cpanel-next-backups/` altına yedek
-   alınır. Alınamazsa deploy durur.
+```json
+{
+  "hooks": {
+    "preInstall":  ["cp .env.production .env"],
+    "postInstall": ["npx prisma migrate deploy"],
+    "postStart":   ["curl -s https://example.com/api/warmup"]
+  }
+}
+```
 
-Ortam dosyaları (`.env`, `.env.local`, `.env.bak-…` — dotenv ailesinin tamamı)
-pakete **hiçbir koşulda** girmez.
+They run with the application's Node virtualenv first on `PATH`, so `npx` and
+`node` resolve to the right versions.
 
----
-
-## Bilinen kısıtlar (faz 1)
-
-- Yalnızca **Next.js**. Laravel desteği planlı.
-- `output: 'standalone'` desteklenmiyor — Next'in kendi dokümanı bunun özel
-  `server.js` ile birlikte kullanılamayacağını yazıyor, Passenger ise özel
-  `server.js` gerektiriyor.
-- **Next 13.4.x reddedilir** — o sürüm Passenger altında
-  `http.Server.listen() was called more than once` ile patlıyor (13.5.6+ temiz).
-- Uygulama yalnızca domain kökünde yayınlanır (`basePath` build'e gömüldüğü
-  için alt yol desteği ayrı iş).
-- Build daima **yerelde** koşar. CloudLinux'un varsayılan 1 GB bellek sınırı
-  altında `next build` güvenilir değil.
-
-### Passenger hakkında bilmeniz gerekenler
-
-- Passenger `PORT` ortam değişkeni **vermez**; `listen()` çağrısını yamalayıp
-  uygulamayı kendi Unix soketine bağlar. Verdiğiniz port değeri önemsizdir —
-  ama `listen()` **tam olarak bir kez** çağrılmalıdır.
-- Passenger **ESM yükleyemez**. `package.json`'ınızda `"type": "module"` varsa
-  araç başlangıç dosyasını `server.cjs` olarak oluşturur.
-- Yeniden başlatma `tmp/restart.txt` ile yapılır ve yalnızca bir istek
-  geldiğinde kontrol edilir; araç bu yüzden yazdıktan sonra uygulamaya bir
-  istek atar.
+> Hooks need a shell, which means they work on CloudLinux. On stock cPanel there
+> is no shell path, so hooks are skipped.
 
 ---
 
-## Yazar
+## Safety
+
+This tool empties a folder and extracts a package into it. Pick the wrong folder
+and a live site is gone. Against that:
+
+1. **Typed confirmation** — destructive steps ask you to type the folder name,
+   not `y/N`. Enforced on the server too.
+2. **Protected names** — `public_html`, `mail`, `etc`, `logs`, `nodevenv`, any
+   dot-directory, and any path that is a document root of one of your domains
+   (otherwise your source and `.env` would be publicly readable).
+3. **Path traversal is rejected, not sanitised** — stripping characters from
+   `../../etc` turns it into a different bug rather than fixing it.
+4. **A backup before every overwrite.** If the backup fails, the deploy stops.
+5. **Ownership record** — every deploy writes a marker saying which project and
+   machine it came from. It is shown before you overwrite, and a folder bound to
+   a *different* domain is called out in red.
+6. **Environment files never enter the package** — `.env`, `.env.local`,
+   `.env.bak-…`, the whole dotenv family, by allow-list rather than pattern
+   matching.
+
+---
+
+## Requirements and limits
+
+- Node.js 18.17+ locally
+- Next.js App Router or Pages Router
+- The build always runs **locally**. CloudLinux caps process memory at 1 GB by
+  default and CloudLinux's own documentation notes that `npm build` hits OOM
+  there.
+
+Not supported yet:
+
+- `output: 'standalone'` — Next's own docs say it cannot be combined with a
+  custom server, and Passenger requires one
+- **Next.js 13.4.x is refused** — its router-server opens a second `http.Server`
+  and Passenger fails with `http.Server.listen() was called more than once`
+  (13.5.6+ is fine)
+- Sub-path mounting (`basePath` is baked in at build time)
+- Laravel
+
+### Things worth knowing about Passenger
+
+- Passenger does **not** provide `PORT`. It patches `listen()` and binds the app
+  to its own Unix socket, so the port value is irrelevant — but `listen()` must
+  be called **exactly once**.
+- Passenger **cannot load ESM**. If your `package.json` sets `"type": "module"`,
+  the startup file is created as `server.cjs`.
+- Restarting goes through `tmp/restart.txt`, which is only checked when a request
+  arrives — so the tool sends one afterwards.
+
+---
+
+## Status
+
+Verified end to end against a live CloudLinux/cPanel account: login and token
+provisioning, domain resolution, packaging, upload, deploy, rollback,
+maintenance page, worker queue, hooks, the web interface and its security layers.
+
+**The stock cPanel path (`PassengerApps`) has not been run against a real
+server yet.** It is written from cPanel's API specification but unverified.
+Planned for the next version.
+
+---
+
+## Author
 
 **Mücahit Sendinç** — [muco.tr](https://muco.tr)
 
-## Lisans
+This tool exists because someone got tired of deploying Next.js to cPanel by
+hand and decided the interesting problem was worth solving properly rather than
+scripting around. Several of the design decisions here came from his direct
+experience running Node applications on CloudLinux at scale:
+
+- The **job queue with a `pgrep` watchdog** was his design. The first attempt at
+  it was abandoned on the wrong conclusion that detached processes cannot
+  survive on shared hosting; he had a working `setsid` launcher from a previous
+  project and said so, the test was redone properly, and he was right. That
+  correction is the reason deploys are now four to ten times faster.
+- He identified that stopping a CloudLinux Node application **removes the
+  Passenger block from the document root**, which explains behaviour that is
+  documented nowhere.
+- The ownership marker used to block updates to folders it hadn't created. He
+  pointed out it was refusing the wrong thing — you shouldn't have to re-adopt
+  your own application on every release — and it became a record instead of a
+  gate.
+- The live log on every action, the remembered application folder, the
+  self-upgrading worker: all his calls, all from actually using the thing.
+
+Good tools come from people who use them daily and refuse to accept the rough
+edges. This one had that.
+
+## License
 
 MIT © Mücahit Sendinç

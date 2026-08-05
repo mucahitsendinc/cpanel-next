@@ -19,7 +19,9 @@
   "files": [
     "bin",
     "lib",
-    "README.md"
+    "README.md",
+    "README.tr.md",
+    "LICENSE"
   ],
   "keywords": [
     "cpanel",
@@ -28,7 +30,9 @@
     "passenger",
     "cloudlinux",
     "shared-hosting",
-    "uapi"
+    "uapi",
+    "deployment",
+    "nodejs-selector"
   ],
   "scripts": {
     "test": "node --test test/"
@@ -41,5 +45,12 @@
   },
   "optionalDependencies": {
     "basic-ftp": "^5.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mucahitsendinc/cpanel-next.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mucahitsendinc/cpanel-next/issues"
   }
 }
