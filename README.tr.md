@@ -229,8 +229,24 @@ Canlı bir CloudLinux/cPanel hesabında uçtan uca doğrulandı: giriş ve token
 üretimi, domain çözümleme, paketleme, yükleme, deploy, geri alma, bakım sayfası,
 iş kuyruğu, hook'lar, web arayüzü ve güvenlik katmanları.
 
-**Stok cPanel yolu (`PassengerApps`) henüz gerçek bir sunucuda çalıştırılmadı.**
-cPanel'in API spesifikasyonundan yazıldı ama doğrulanmadı. Bir sonraki sürümde.
+Stok cPanel yolu (`PassengerApps`) artık canlı bir cPanel 11.136 hesabında
+çalıştırıldı: `register_application`, `list_applications`, `edit_application`,
+`ensure_deps`, `enable_application`, `disable_application` ve
+`unregister_application` çalışıyor; stok cPanel'deki her deploy'u bozacak iki
+kusur bulunup düzeltildi.
+
+**Doğrulanmayan tek şey servis etme.** Test hesabı LiteSpeed'li CloudLinux ve
+orada Node.js'i CloudLinux Selector yönetiyor; stok Application Manager kaydı
+API tarafından kabul ediliyor ama gerçekte servis edilmiyor. Bu yolun siteyi
+gerçekten yayınladığını doğrulamak için gerçekten stok bir cPanel kutusu lazım.
+
+cPanel'in kendi dokümanının yanlış olduğu iki yer, ikisi de canlı sunucuda
+bulundu:
+
+- `ensure_deps` **ev dizinine göreli** `app_path` istiyor. Dokümandaki örnek
+  (`/home/example/my-app/`) `Invalid path` ile reddediliyor.
+- `SubDomain::delsubdomain` **yalnızca API2'de** var. UAPI'de hiçbir adla
+  karşılığı yok.
 
 ---
 

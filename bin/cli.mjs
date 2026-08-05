@@ -21,6 +21,7 @@ const OPTIONS = {
   'no-build': { type: 'boolean', default: false },
   'clean-modules': { type: 'boolean', default: false },
   transport: { type: 'string' },
+  driver: { type: 'string' },
 
   // davranış
   lang: { type: 'string' },

@@ -232,9 +232,25 @@ Verified end to end against a live CloudLinux/cPanel account: login and token
 provisioning, domain resolution, packaging, upload, deploy, rollback,
 maintenance page, worker queue, hooks, the web interface and its security layers.
 
-**The stock cPanel path (`PassengerApps`) has not been run against a real
-server yet.** It is written from cPanel's API specification but unverified.
-Planned for the next version.
+The stock cPanel path (`PassengerApps`) has now been exercised against a live
+cPanel 11.136 account: `register_application`, `list_applications`,
+`edit_application`, `ensure_deps`, `enable_application`, `disable_application`
+and `unregister_application` all work, and two defects were found and fixed
+that would have broken every stock-cPanel deploy — see below.
+
+**What is still unverified is serving.** The test account runs CloudLinux with
+LiteSpeed, where the CloudLinux Selector owns Node.js; a stock Application
+Manager registration is accepted by the API but never actually served there.
+Confirming that an app registered this way is reachable needs a genuinely
+stock cPanel box.
+
+Two places where cPanel's own documentation is wrong, both found by running
+against a real server:
+
+- `ensure_deps` takes a **home-relative** `app_path`. The documented example
+  (`/home/example/my-app/`) is rejected with `Invalid path`.
+- `SubDomain::delsubdomain` exists **only in API2**. No UAPI equivalent is
+  present under any name.
 
 ---
 
