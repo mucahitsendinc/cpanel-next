@@ -96,7 +96,37 @@ deploymanager rollback     önceki sürüme dön
 deploymanager logs         son çalıştırmanın sunucu çıktısı
 deploymanager doctor       bağlantı ve ortam denetimi
 deploymanager ui           yerel web arayüzünü aç
+deploymanager config       varsayılan arayüz ve dil
 ```
+
+### Terminal mi, web mi
+
+`deploymanager` komutsuz çalıştırıldığında kayıtlı tercihinize göre ya
+terminal akışını ya da web arayüzünü açar. Tercih ilk çalıştırmada bir kez
+sorulur.
+
+```bash
+deploymanager config ui web       # varsayılanı web yap
+deploymanager config ui terminal  # varsayılanı terminal yap
+deploymanager --web               # yalnızca bu çalıştırma için web
+deploymanager --terminal          # yalnızca bu çalıştırma için terminal
+```
+
+Web tercihi seçiliyse: bir proje dizininde `deploymanager` yazarsınız,
+tarayıcı o proje seçili hâlde açılır, **terminal bekler**. Tarayıcıyı
+kapattığınızda terminale dönülür (arayüzdeki "Terminale dön" düğmesi de
+aynı işi yapar, beklemeden).
+
+Kapanma tespiti kalp atışıyla yapılır: sayfa düzenli ping atar, ping
+kesilince ~12 saniye içinde çıkılır. `beforeunload`/`sendBeacon`
+kullanılmıyor çünkü sekme çökerse, ağ koparsa veya tarayıcı beacon'ı
+düşürürse hiç gelmez; atışın yokluğu ise her durumda doğru sinyaldir.
+
+**Deploy sürerken terminale dönülmez.** Süreci öldürmek yarım açılmış bir
+uygulama bırakırdı.
+
+İki arayüz de aynı işleri yapar: hesap ekleme/silme, deploy, geri alma,
+başlat/durdur/yeniden başlat, kayıtlar, dil ve arayüz ayarı.
 
 ### Web arayüzü
 

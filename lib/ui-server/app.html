@@ -108,7 +108,14 @@ const S = {
     refresh:'Yenile',blockers:'Yayınlanamaz',open:'Aç',noProject:'Önce bir proje seçin.',
     quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…',
     backToTerminal:'Terminale dön',jobRunning:'İş sürüyor — kapatmak onu durdurmaz, ama pencereyi açık tutmak ilerlemeyi görmenizi sağlar.',
-    closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.'},
+    closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.',
+    settings:'Ayarlar',profiles:'cPanel hesapları',addProfile:'Hesap ekle',remove:'Sil',
+    host:'Sunucu',user:'Kullanıcı adı',password:'cPanel şifresi',port:'Port',
+    add:'Ekle',uiMode:'Varsayılan arayüz',uiWeb:'Web arayüzü',uiTerminal:'Terminal',
+    language:'Dil',auto:'Otomatik',saved:'Kaydedildi.',
+    removeConfirm:'{name} profili silinsin mi? Sunucudaki token geçerli kalır; cPanel → Manage API Tokens sayfasından silebilirsiniz.',
+    passwordNote:'cPanel şifreniz hiçbir yere kaydedilmez; yalnızca token üretmek için kullanılır.',
+    masterNote:'Token bu ana şifreyle şifrelenip saklanacak.',noProfilesYet:'Henüz hesap eklenmemiş.'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -129,7 +136,14 @@ const S = {
     refresh:'Refresh',blockers:'Not deployable',open:'Open',noProject:'Pick a project first.',
     quota:'quota',regime:'Regime',account:'Account',working:'Working…',
     backToTerminal:'Back to terminal',jobRunning:'A job is running — closing will not stop it, but keeping this open lets you watch progress.',
-    closed:'You can close this window. Returned to the terminal.'}
+    closed:'You can close this window. Returned to the terminal.',
+    settings:'Settings',profiles:'cPanel accounts',addProfile:'Add account',remove:'Remove',
+    host:'Server',user:'Username',password:'cPanel password',port:'Port',
+    add:'Add',uiMode:'Default interface',uiWeb:'Web interface',uiTerminal:'Terminal',
+    language:'Language',auto:'Automatic',saved:'Saved.',
+    removeConfirm:'Remove the profile {name}? The token on the server stays valid; delete it from cPanel → Manage API Tokens.',
+    passwordNote:'Your cPanel password is never stored; it is only used to create a token.',
+    masterNote:'The token will be encrypted with this master password.',noProfilesYet:'No accounts added yet.'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -230,6 +244,7 @@ function renderUnlock(errMsg) {
 
 function renderMain() {
   clear(app);
+  if (!ST.profiles.length) ST.tab = 'settings';
   const sel = el('select', { style: 'width:auto;min-width:230px',
     onchange: (e) => { ST.profile = e.target.value; ST.overview = null; renderMain(); } },
     ...ST.profiles.map((p) => el('option', { value: p.name, selected: p.name === ST.profile },
@@ -255,7 +270,7 @@ function renderMain() {
 
   const main = el('main', {});
   const tabs = el('div', { class: 'tabs' },
-    ...['overview', 'deploy', 'backups', 'logs'].map((k) =>
+    ...['overview', 'deploy', 'backups', 'logs', 'settings'].map((k) =>
       el('button', { class: ST.tab === k ? 'on' : '', onclick: () => { ST.tab = k; renderMain(); } }, s(k))));
   main.append(tabs);
 
@@ -263,7 +278,8 @@ function renderMain() {
   main.append(body);
   app.append(main);
 
-  ({ overview: viewOverview, deploy: viewDeploy, backups: viewBackups, logs: viewLogs })[ST.tab](body);
+  ({ overview: viewOverview, deploy: viewDeploy, backups: viewBackups, logs: viewLogs,
+     settings: viewSettings })[ST.tab](body);
 }
 
 /* -------------------------------------------------------------- overview */
@@ -603,6 +619,106 @@ function askRestore(out, b) {
     el('div', { class: 'msg warn' }, s('rollbackWarn')),
     el('code', {}, '~/' + b.appRoot + '  ←  ' + b.name),
     el('label', {}, s('typeToConfirm')), input, go));
+}
+
+/* ------------------------------------------------------------- settings */
+async function viewSettings(root) {
+  clear(root);
+
+  /* --- hesaplar --- */
+  const card = el('div', { class: 'card' }, el('h2', {}, s('profiles')));
+  if (!ST.profiles.length) {
+    card.append(el('p', { class: 'sub' }, s('noProfilesYet')));
+  } else {
+    const removeProfileRow = (p) => {
+      const btn = el('button', {}, s('remove'));
+      btn.addEventListener('click', async () => {
+        if (!confirm(s('removeConfirm').replace('{name}', p.name))) return;
+        btn.disabled = true;
+        try {
+          const r = await api('profiles/' + encodeURIComponent(p.name), { method: 'DELETE' });
+          ST.profiles = r.profiles;
+          if (ST.profile === p.name) ST.profile = r.profiles[0]?.name ?? null;
+          ST.overview = null;
+          renderMain();
+        } catch (err) {
+          btn.disabled = false;
+          alert(err.message);
+        }
+      });
+      return el('tr', {},
+        el('td', { class: 'mono' }, p.user + '@' + p.host + ':' + p.port),
+        el('td', { class: 'muted mono' }, p.tokenName || ''),
+        el('td', { style: 'text-align:right' }, btn));
+    };
+    card.append(el('table', {}, el('tbody', {}, ...ST.profiles.map(removeProfileRow))));
+  }
+  root.append(card);
+
+  /* --- hesap ekle --- */
+  const host = el('input', { placeholder: 'sunucu.example.com' });
+  const user = el('input', {});
+  const port = el('input', { type: 'number', value: '2083' });
+  const pass = el('input', { type: 'password' });
+  const master = el('input', { type: 'password' });
+  const addOut = el('div', {});
+  const addBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('add'));
+
+  addBtn.addEventListener('click', async () => {
+    addBtn.disabled = true; clear(addOut);
+    try {
+      const r = await post('profiles', {
+        host: host.value, user: user.value, port: Number(port.value) || 2083,
+        password: pass.value, master: master.value });
+      ST.profiles = r.profiles;
+      if (!ST.profile) ST.profile = r.profiles[0]?.name ?? null;
+      pass.value = ''; master.value = '';
+      ST.overview = null;
+      renderMain();
+    } catch (err) { showError(addOut, err); }
+    addBtn.disabled = false;
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('addProfile')),
+    el('div', { class: 'grid2' },
+      el('div', {}, el('label', {}, s('host')), host),
+      el('div', {}, el('label', {}, s('port')), port)),
+    el('label', {}, s('user')), user,
+    el('label', {}, s('password')), pass,
+    el('p', { class: 'sub' }, s('passwordNote')),
+    el('label', {}, s('master')), master,
+    el('p', { class: 'sub' }, s('masterNote')),
+    addBtn, addOut));
+
+  /* --- tercihler --- */
+  let prefs = {};
+  try { prefs = (await api('preferences')).preferences; } catch { /* yok say */ }
+
+  const uiSel = el('select', {},
+    el('option', { value: 'terminal', selected: prefs.ui === 'terminal' }, s('uiTerminal')),
+    el('option', { value: 'web', selected: prefs.ui === 'web' }, s('uiWeb')));
+  const langSel = el('select', {},
+    el('option', { value: '', selected: !prefs.lang }, s('auto')),
+    el('option', { value: 'tr', selected: prefs.lang === 'tr' }, 'Türkçe'),
+    el('option', { value: 'en', selected: prefs.lang === 'en' }, 'English'));
+  const prefOut = el('div', {});
+
+  const savePrefs = async () => {
+    try {
+      const r = await post('preferences', { ui: uiSel.value, lang: langSel.value || null });
+      LANG = r.lang || LANG;
+      clear(prefOut); prefOut.append(el('div', { class: 'msg info' }, s('saved')));
+      renderMain();
+    } catch (err) { showError(prefOut, err); }
+  };
+  uiSel.addEventListener('change', savePrefs);
+  langSel.addEventListener('change', savePrefs);
+
+  root.append(el('div', { class: 'card' },
+    el('label', {}, s('uiMode')), uiSel,
+    el('label', {}, s('language')), langSel,
+    prefOut));
 }
 
 /* ----------------------------------------------------------------- logs */
