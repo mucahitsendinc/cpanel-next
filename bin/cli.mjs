@@ -49,6 +49,7 @@ const COMMANDS = {
   ui: () => import('../lib/commands/ui.mjs'),
   config: () => import('../lib/commands/config.mjs'),
   maintenance: () => import('../lib/commands/maintenance.mjs'),
+  update: () => import('../lib/commands/update.mjs'),
 };
 
 async function main() {
