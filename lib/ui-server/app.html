@@ -331,11 +331,14 @@ async function viewOverview(root, refresh) {
         el('th', {}, s('owner')), el('th', {}, s('actions')))),
       el('tbody', {}, ...o.apps.map((a) => {
         const on = /start|run/i.test(String(a.status ?? (a.enabled ? 'started' : 'stopped')));
+        // Bu işler CloudLinux'ta worker'dan geçiyor ve 5-60 sn sürebiliyor;
+        // kullanıcı ne olduğunu görmeli. Hepsi iş olarak koşup log akıtıyor.
         const act = (action) => async (e) => {
           e.target.disabled = true;
-          try { await post('app-action', { profile: ST.profile, appRoot: a.path, action }); }
-          catch (err) { alert(err.message); }
-          const r = root; clear(r); viewOverview(r, true);
+          try {
+            const r = await post('app-action', { profile: ST.profile, appRoot: a.path, action });
+            renderJob(jobOut, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
+          } catch (err) { e.target.disabled = false; showError(jobOut, err); }
         };
         return el('tr', {},
           el('td', { class: 'mono' }, a.name),
@@ -355,7 +358,7 @@ async function viewOverview(root, refresh) {
                 e.target.disabled = true;
                 try {
                   const r = await post('app-update', { profile: ST.profile, appRoot: a.path });
-                  renderJob(jobOut, r.jobId);
+                  renderJob(jobOut, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
                 } catch (err) { e.target.disabled = false; showError(jobOut, err); }
               },
             }, s('update')),
@@ -551,7 +554,7 @@ function renderConfirm(out, pf, form) {
 }
 
 /* ------------------------------------------------------------------- job */
-function renderJob(out, jobId) {
+function renderJob(out, jobId, onDone) {
   clear(out);
   const log = el('div', { class: 'log' });
   const head = el('div', { class: 'row', style: 'margin-bottom:10px' }, el('strong', {}, s('working')));
@@ -595,6 +598,7 @@ function renderJob(out, jobId) {
           head.append(el('a', { href: j.result.url, target: '_blank', rel: 'noreferrer' }, j.result.url));
         }
         ST.overview = null;
+        if (onDone) setTimeout(onDone, 1200);
       });
     } else if (e.type === 'failed') {
       line('e', '✗ ' + (e.text || s('failed')));
