@@ -368,9 +368,23 @@ test('verilen php ikilisi kullanılıyor', () => {
 
 /* -------------------------------------------------------------- ayarlar */
 
-test('ilk kurulumun varsayılanı fresh-seed, güncellemenin migrate', () => {
-  assert.equal(normalizeSettings({}, { first: true }).migrate, 'fresh-seed');
-  assert.equal(normalizeSettings({}, { first: false }).migrate, 'migrate');
+test('varsayılanlar veritabanına DOKUNMAMA yönünde', () => {
+  /*
+   * Güncellemede migration açıkça istenmedikçe koşmuyor: panelden "Güncelle"
+   * tek tık, o tıkla şema değiştirmek kullanıcının vermediği bir karar.
+   *
+   * İlk kurulumda `fresh-seed` DEĞİL: o komut bütün tabloları siliyor ve
+   * kullanıcı var olan bir veritabanını seçtiyse verisini götürürdü.
+   * `migrate-seed` şemayı kuruyor, hiçbir şeyi düşürmüyor.
+   */
+  assert.equal(normalizeSettings({}, { first: false }).migrate, 'none');
+  assert.equal(normalizeSettings({}, { first: true }).migrate, 'migrate-seed');
+});
+
+test('fresh-seed hâlâ SEÇİLEBİLİR, ama asla varsayılan değil', () => {
+  // Amaç seçeneği kaldırmak değil, sessiz kararı kaldırmak.
+  assert.equal(normalizeSettings({ firstMigrate: 'fresh-seed' }, { first: true }).migrate, 'fresh-seed');
+  assert.equal(normalizeSettings({ migrate: 'migrate' }, { first: false }).migrate, 'migrate');
 });
 
 test('güncelleme migration’ı kapatılabiliyor', () => {
@@ -379,7 +393,9 @@ test('güncelleme migration’ı kapatılabiliyor', () => {
 
 test('geçersiz değer sessizce kabul edilmiyor', () => {
   const r = normalizeSettings({ migrate: 'frsh-seed' });
-  assert.equal(r.migrate, 'migrate');
+  // Yazım hatası varsayılana düşüyor ve varsayılan `none` — yani yanlış yazılmış
+  // bir kip yüzünden beklenmeyen bir migration KOŞMUYOR.
+  assert.equal(r.migrate, 'none');
   assert.equal(r.warnings.length, 1);
   assert.match(r.warnings[0], /migrate/);
 });

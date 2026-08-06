@@ -408,6 +408,7 @@ const S = {
     folderNotEmpty:'Bu klasör boş değil.',
     firstDeployHint:'Bu klasör sunucuda yok; ilk kez oluşturulacak.',
     masterNew:'Ana şifre belirleyin',masterNewHelp:'cPanel token’ınız bu şifreyle şifrelenip diskte saklanacak. Uygulamayı her açtığınızda bu şifre sorulur. Karmaşıklık zorunluluğu yok — ama unutursanız kayıtlı hesaplar açılamaz.',tokenScreen:'API token’ları',tokenScreenSub:'Bu aracın token’ını cPanel’den silin',
+    mgProject:'Projedeki ayar (varsayılan: çalıştırma)',lvUpdateSub:'Bu proje bu klasöre yeniden yayınlanacak. Veritabanına ne yapılacağını aşağıda seçin.',lvMigrateHelp:'Varsayılan olarak migration ÇALIŞMAZ. Şemayı değiştiren bir komut, tek tıkla sessizce koşmamalı.',
     lvTitle:'Laravel ayarları',lvFolder:'Uygulama klasörü',lvAuto:'domainin belge kökü — seçilmiyor',
     lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
@@ -575,6 +576,7 @@ const S = {
     folderNotEmpty:'This folder is not empty.',
     firstDeployHint:'This folder does not exist on the server; it will be created.',
     masterNew:'Choose a master password',masterNewHelp:'Your cPanel token is encrypted with this and stored on disk. You will be asked for it each time you open the app. No complexity rules — but if you forget it, the saved accounts cannot be opened.',tokenScreen:'API tokens',tokenScreenSub:'Remove this tool’s token from cPanel',
+    mgProject:'Setting from the project (default: do not run)',lvUpdateSub:'This project will be redeployed to this folder. Choose what happens to the database below.',lvMigrateHelp:'By default no migration runs. A command that changes your schema should not run silently on one click.',
     lvTitle:'Laravel settings',lvFolder:'Application folder',lvAuto:'the domain’s document root — not selectable',
     lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
@@ -1029,6 +1031,65 @@ async function viewOverview(root, refresh) {
 }
 
 /**
+ * Laravel güncellemesi — NE OLACAĞI ÖNCE GÖSTERİLİYOR.
+ *
+ * "Güncelle" tek tık ve o tıkla veritabanı şeması değişebilir. Bunu sessizce
+ * yapmak kullanıcının vermediği bir kararı onun adına vermek olurdu; varsayılan
+ * artık "migration çalıştırma" ve kip her güncellemede ekranda seçilebiliyor.
+ *
+ * Seçim bu çalıştırma için geçerli. Kalıcı tercih `.cpanel-next.json` içindeki
+ * `laravel.migrate` alanı — sunucu ayar gelmediğinde oradan okuyor, yani iki
+ * ön yüz aynı kaynağa bakıyor.
+ */
+function askLaravelUpdate(out, site, reload) {
+  clear(out);
+
+  const project = site.ownerProject;
+  if (!project) { alert(s('noLink')); return; }
+
+  const migrate = el('select', { style: 'width:auto' },
+    el('option', { value: '', selected: true }, s('mgProject')),
+    el('option', { value: 'none' }, s('mgNone')),
+    el('option', { value: 'migrate' }, s('mgMigrate')),
+    el('option', { value: 'migrate-seed' }, s('mgMigrateSeed')),
+    el('option', { value: 'fresh-seed' }, s('mgFreshSeed')));
+
+  const warn = el('div', {});
+  migrate.addEventListener('change', () => {
+    clear(warn);
+    if (migrate.value === 'fresh-seed') {
+      warn.append(el('div', { class: 'msg warn' }, s('lvFreshWarn')));
+    }
+  });
+
+  const go = el('button', { class: 'primary', style: 'margin-top:14px' }, '⬆ ' + s('update'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      const r = await post('app-update', {
+        profile: ST.profile, appRoot: site.appRoot, domain: site.domain,
+        projectPath: project,
+        // Boş seçim = projedeki ayar. Arayüz burada bir kip UYDURMUYOR.
+        laravel: migrate.value ? { migrate: migrate.value } : undefined,
+      });
+      renderJob(out, r.jobId, reload);
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('update') + ' — ' + site.domain),
+      el('p', {}, s('lvUpdateSub'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('project')), el('dd', { class: 'mono' }, project),
+      el('dt', {}, s('lvFolder')), el('dd', { class: 'mono' }, '~/' + site.appRoot)),
+    el('label', {}, s('lvMigrate')), migrate, warn,
+    el('p', { class: 'help' }, s('lvMigrateHelp')),
+    el('div', { class: 'row', style: 'margin-top:8px' },
+      go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+}
+
+/**
  * Laravel sitesi kartı.
  *
  * Node uygulamasından iki farkı var ve ikisi de PHP'nin doğasından:
@@ -1067,9 +1128,7 @@ function siteCard(site, jobOut, reload) {
          * yazabilirdi. Node uygulamalarındaki `startUpdate` bunu zaten doğru
          * yapıyor — farklıysa hangisi diye soruyor. Aynı işlevi kullanıyoruz.
          */
-        onclick: () => startUpdate(jobOut, {
-          path: site.appRoot, domain: site.domain, ownerProject: site.ownerProject,
-        }, reload),
+        onclick: () => askLaravelUpdate(jobOut, site, reload),
       }, '⬆ ' + s('update')),
       el('a', { href: cpanelUrl('files', { dir: site.appRoot }, site.filesUrl), target: '_blank', rel: 'noreferrer' },
         el('button', {}, '📂 ' + s('appFiles'))),

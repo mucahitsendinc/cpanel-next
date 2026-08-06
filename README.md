@@ -491,8 +491,19 @@ single defence.
 
 | | default |
 |---|---|
-| first install | `migrate:fresh --seed` |
-| update | `migrate --force` |
+| first install | `migrate --force` + `db:seed` |
+| update | **does not run** |
+
+The defaults lean towards not touching the database, because either alternative
+would mean making a decision the user never made:
+
+- **Update.** "Update" in the panel is one click; running a command that
+  changes your schema on that click is not right. The panel asks for the mode
+  every time.
+- **First install.** `migrate:fresh` **drops every table.** Harmless on an empty
+  database, but if an existing database was selected it destroys its data — as
+  the default behaviour. `fresh-seed` is still available, just never the
+  default.
 
 Modes: `none`, `migrate`, `migrate-seed`, `fresh-seed` — via flags
 (`--migrate none`, `--no-migrate`) or `.cpanel-next.json`:

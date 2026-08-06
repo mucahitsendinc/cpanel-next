@@ -483,8 +483,18 @@ altında duruyor ve `.htaccess` onu gizliyor, ama tek savunmaya güvenmiyoruz.
 
 | | varsayılan |
 |---|---|
-| ilk kurulum | `migrate:fresh --seed` |
-| güncelleme | `migrate --force` |
+| ilk kurulum | `migrate --force` + `db:seed` |
+| güncelleme | **çalıştırılmaz** |
+
+Varsayılanlar veritabanına dokunmama yönünde, çünkü ikisi de kullanıcının
+vermediği bir kararı onun adına vermek olurdu:
+
+- **Güncelleme.** Panelden "Güncelle" tek tık; o tıkla şemayı değiştiren bir
+  komut çalıştırmak doğru değil. Panel her güncellemede kipi ekranda soruyor.
+- **İlk kurulum.** `migrate:fresh` **bütün tabloları siliyor.** Boş bir
+  veritabanında zararsız, ama var olan bir veritabanı seçildiyse verisini
+  götürür — hem de varsayılan davranış olarak. `fresh-seed` hâlâ seçilebilir,
+  ama artık asla varsayılan değil.
 
 Kipler: `none`, `migrate`, `migrate-seed`, `fresh-seed`. Bayrakla
 (`--migrate none`, `--no-migrate`) ya da `.cpanel-next.json` ile:
