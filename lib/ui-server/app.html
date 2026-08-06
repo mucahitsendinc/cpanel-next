@@ -327,7 +327,8 @@ const S = {
     changePasswordSub:'Sunucudaki hesabınızın şifresi. Kasadaki kopya da güncellenir.',
     currentPassword:'Mevcut şifre',newPassword:'Yeni şifre',newPasswordAgain:'Yeni şifre (tekrar)',
     passwordMismatch:'İki şifre aynı değil.',passwordChanged:'Şifre değiştirildi.',
-    rollbackSection:'Geri alma noktaları',logsSection:'Sunucudaki çalıştırmalar'},
+    rollbackSection:'Geri alma noktaları',logsSection:'Sunucudaki çalıştırmalar',
+    openWebmail:'Webmail',subLabelHelp:'Yalnızca alt ad; domainin geri kalanı otomatik eklenir.'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -482,7 +483,8 @@ const S = {
     changePasswordSub:'The password of your account on the server. The copy in the vault is updated too.',
     currentPassword:'Current password',newPassword:'New password',newPasswordAgain:'New password (again)',
     passwordMismatch:'The two passwords do not match.',passwordChanged:'Password changed.',
-    rollbackSection:'Restore points',logsSection:'Runs on the server'}
+    rollbackSection:'Restore points',logsSection:'Runs on the server',
+    openWebmail:'Webmail',subLabelHelp:'Just the label; the rest of the domain is added automatically.'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -1096,9 +1098,17 @@ async function viewDeploy(root) {
     el('div', { class: 'sec' },
       el('h2', {}, s('stepTarget')),
       el('p', {}, s('stepTargetSub'))));
+  /*
+   * "Yeni subdomain" seçeneği BURADA, hedef adımının içinde.
+   *
+   * Eskiden yalnızca Panel'deydi: yeni bir proje yayınlamak isteyen kullanıcı
+   * sihirbazı yarıda bırakıp Panel'e gidiyor, subdomain açıyor, sonra baştan
+   * başlıyordu. Karar burada verildiğine göre seçenek de burada olmalı.
+   */
   const domSel = el('select', {},
     ...o.domains.filter((x) => x.type !== 'parked').map((x) =>
-      el('option', { value: x.domain, selected: x.domain === (d.domain ?? (d.link && d.link.domain)) }, x.domain + ' — ' + x.typeLabel)));
+      el('option', { value: x.domain, selected: x.domain === (d.domain ?? (d.link && d.link.domain)) }, x.domain + ' — ' + x.typeLabel)),
+    el('option', { value: '__new__' }, '+ ' + s('newSubdomain')));
   /*
    * Kayıtlı bağlantı varsa onu kullan — kullanıcı her seferinde klasör adını
    * elle yazmak zorunda kalmasın. `suggest()` yalnızca HİÇ bağlantı yokken,
@@ -1126,7 +1136,56 @@ async function viewDeploy(root) {
     return { value: suggest(domain, o.apps), why: null };
   }
 
+  /*
+   * "Yeni subdomain" seçilince form YERİNDE açılıyor.
+   *
+   * Oluşturulduğu anda domain listesi tazeleniyor ve yeni subdomain seçili
+   * hâle geliyor; kullanıcı sihirbazda kaldığı yerden devam ediyor.
+   */
+  const newSubBox = el('div', {});
+  function askNewSub() {
+    clear(newSubBox);
+    const roots = o.domains.filter((x) => x.type === 'main' || x.type === 'addon');
+    const rootSel = el('select', {}, ...roots.map((x) => el('option', { value: x.domain }, x.domain)));
+    const label = el('input', { placeholder: 'magaza' });
+    const msg = el('div', {});
+    const go = el('button', { class: 'primary', style: 'margin-top:12px' }, s('createSub'));
+
+    go.addEventListener('click', async () => {
+      const name = label.value.trim().toLowerCase();
+      if (!name) return;
+      go.disabled = true;
+      clear(msg);
+      try {
+        await post('subdomain', { profile: ST.profile, label: name, rootDomain: rootSel.value });
+        const full = name + '.' + rootSel.value;
+        // Liste tazelenmeli: yeni subdomain seçilebilir olmalı ve belge kökü
+        // bilgisi (Laravel için şart) gelmeli.
+        ST.overview = await api('overview/' + encodeURIComponent(ST.profile) + '?refresh=1');
+        ST.deploy.domain = full;
+        renderMain();
+      } catch (err) { go.disabled = false; showError(msg, err); }
+    });
+
+    newSubBox.append(el('div', { class: 'card', style: 'margin:12px 0' },
+      el('div', { class: 'sec' }, el('h2', {}, s('newSubdomain'))),
+      el('label', {}, s('underDomain')), rootSel,
+      el('label', {}, s('subLabel')), label,
+      el('p', { class: 'help' }, s('subLabelHelp')),
+      el('div', { class: 'row', style: 'margin-top:12px' },
+        go, el('button', { onclick: () => { domSel.selectedIndex = 0; applyRoot(); } }, s('cancel'))),
+      msg));
+    setTimeout(() => label.focus(), 30);
+  }
+
   function applyRoot() {
+    clear(newSubBox);
+    if (domSel.value === '__new__') {
+      rootIn.value = '';
+      clear(hint);
+      askNewSub();
+      return;
+    }
     const r = pickRoot(domSel.value);
     rootIn.value = r.value;
     clear(hint);
@@ -1159,7 +1218,7 @@ async function viewDeploy(root) {
 
   targetCard.append(
     el('label', {}, s('domain')), domSel,
-    el('p', { class: 'help' }, s('domainHelp')),
+    el('p', { class: 'help' }, s('domainHelp')), newSubBox,
     el('label', {}, s('appRoot')), rootIn,
     el('p', { class: 'help' }, s('appRootHelp')), hint,
     el('label', {}, s('actions')),
@@ -2274,6 +2333,16 @@ async function viewMail(root) {
         el('td', { class: 'muted' }, bytes(a.used)),
         el('td', { class: 'muted' }, a.quota === null ? s('quotaUnlimited') : a.quota + ' MB'),
         el('td', {}, el('div', { class: 'row' },
+          /*
+           * Webmail bağlantısı posta kutusunun ŞİFRESİNİ İSTEMİYOR: cPanel
+           * hesabın sahibi için tek kullanımlık bir webmail oturumu üretiyor.
+           * Bu yüzden kasada cPanel şifresi saklı olmasa da çalışıyor.
+           */
+          el('a', {
+            href: '/sso?t=' + encodeURIComponent(TOKEN) + '&profile=' + encodeURIComponent(ST.profile) +
+              '&target=webmail&email=' + encodeURIComponent(a.email),
+            target: '_blank', rel: 'noreferrer',
+          }, el('button', { class: 'primary' }, '✉ ' + s('openWebmail'))),
           el('button', { onclick: () => showMailSettings(out, a.email) }, s('mailSettings')),
           el('button', { onclick: async (e) => {
             e.target.disabled = true;

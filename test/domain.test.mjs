@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveDomain, normalize } from '../lib/domain.mjs';
+import { resolveDomain, normalize , toHomeRelative } from '../lib/domain.mjs';
 import { setLocale } from '../lib/i18n/index.mjs';
 
 setLocale('en');
@@ -89,4 +89,47 @@ test('kullanıcı girdisi normalleştirilir', () => {
 test('www ile yazılan domain de eşleşir', async () => {
   const r = await resolveDomain(client, 'www.example.com', DOMAINS);
   assert.equal(r.kind, 'existing');
+});
+
+/* ------------------------------------------------- belge kökü normalleştirme */
+
+/*
+ * ⚠ cPanel `documentroot` alanını MUTLAK yol döndürüyor. Aracın geri kalanı
+ * ev dizinine göreli bekliyor ve bu uyuşmazlık canlıda iki arızaya yol açtı:
+ * Laravel yayını `/home/u/home/u/site.com` adresine yazmaya çalıştı, ve
+ * `assertAppRoot`'un belge kökü çakışma denetimi hiç eşleşmedi — yani kaynak
+ * kodu yayına açık bir dizine koymayı engelleyen kontrol sessizce kapalıydı.
+ */
+
+test('mutlak belge kökü ev dizinine göreli hâle geliyor', () => {
+  assert.equal(toHomeRelative('/home/bimtest/tests.example.com', 'bimtest'), 'tests.example.com');
+  assert.equal(toHomeRelative('/home/bimtest/public_html', 'bimtest'), 'public_html');
+});
+
+test('sondaki eğik çizgi kırpılıyor', () => {
+  assert.equal(toHomeRelative('/home/u/site.com/', 'u'), 'site.com');
+});
+
+test('ev dizininin kendisi boş dizeye iniyor', () => {
+  assert.equal(toHomeRelative('/home/u', 'u'), '');
+});
+
+test('zaten göreli olan yol bozulmuyor', () => {
+  assert.equal(toHomeRelative('public_html/shop', 'u'), 'public_html/shop');
+});
+
+test('başka bir kullanıcının yolu yanlışlıkla sökülmüyor', () => {
+  // `/home/baska/site.com` bizim ev dizinimiz değil; önek eşleşmesi
+  // kullanıcı adını da içermeli, yoksa yol yanlış çözülür.
+  assert.equal(toHomeRelative('/home/baska/site.com', 'u'), 'home/baska/site.com');
+});
+
+test('benzer isimli ev dizini karıştırılmıyor', () => {
+  // `/home/bimtest2/...` yolu `/home/bimtest` ile başlıyor ama başka bir hesap.
+  assert.equal(toHomeRelative('/home/bimtest2/site.com', 'bimtest'), 'home/bimtest2/site.com');
+});
+
+test('boş değer null dönüyor', () => {
+  assert.equal(toHomeRelative('', 'u'), null);
+  assert.equal(toHomeRelative(null, 'u'), null);
 });
