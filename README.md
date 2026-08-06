@@ -196,6 +196,80 @@ Security is the first thing in that server, not a layer added later:
 
 ---
 
+## Email, FTP and backups
+
+Deploying alone is not enough: once a site is live it needs mailboxes, file
+access and backups. In cPanel these are separate screens; here they are in the
+same interface.
+
+### Email
+
+Create, delete, rotate passwords and set quotas. **Connection settings are read
+from the server**, not guessed — hosts change the server name and ports, and a
+wrong `mail.domain.com:465` costs people hours. The screen shows both the
+secure (SSL/TLS) and plain values, with IMAP, POP3 and SMTP ports.
+
+Deleting a mailbox requires typing the address exactly: every message in it
+goes too.
+
+### FTP
+
+Create, list, rotate passwords, delete. The login name is given ready as
+`user@server`.
+
+Two notes:
+
+- **Dots are preserved.** cPanel's `disallowdot` defaults to `1`, so
+  `deploy.bot` silently becomes `deploybot` and the user cannot connect without
+  knowing why. We send `0` explicitly.
+- **Deleting does not delete files.** cPanel's `destroy` parameter also removes
+  the account's home directory, and the default home directory can be the
+  application itself — so removing an FTP account could take the site down.
+  That parameter is never sent.
+
+### Back up and download
+
+Every database has a button: it is exported on the server and downloaded to
+your computer. Application cards have the same thing for files.
+
+```
+~/Downloads/cpanel-next/shop-20260806143000.sql.gz
+```
+
+The moment it lands, a **"Show in folder"** button appears — it does not open
+the file, it reveals it in Finder.
+
+How it works, because it is less simple than it looks:
+
+- cPanel's UAPI has **no download endpoint**. `Fileman::get_file_content`
+  exists but supports no ranges and returns JSON, so it corrupts binaries; the
+  classic `/download?file=…` needs a session cookie and rejects tokens. So the
+  file is base64-encoded and split on the server, the parts are read one by one
+  and reassembled locally — the mirror image of uploading. The size is compared
+  at the end: a partially downloaded file is never silently accepted.
+- A database needs `mysqldump`, but **we do not have any existing user's
+  password**. A short-lived MySQL user is created and deleted the moment the
+  job ends — including on failure. The password is **never** put on the command
+  line: `mysqldump -pPASSWORD` is visible to everyone in `ps` on shared
+  hosting. A temporary 0600 `--defaults-extra-file` is used instead.
+- Above 200 MB the tool stops and points you at cPanel's own download screen:
+  this path is one HTTP round trip per chunk and takes minutes at that size.
+  Saying so beats trying silently.
+
+### Changing your cPanel password
+
+In Settings. cPanel **requires the current password**, and that is right: an
+interface with an unlocked vault should not be able to change your cPanel
+password without your consent. If auto login is on, the copy in the vault is
+updated too.
+
+> The `enablemysql` flag is **not sent**. cPanel uses it to sync MySQL user
+> passwords with the account password — which instantly invalidates
+> `DB_PASSWORD` in every `.env` and takes every live application off its
+> database. Not something to do silently.
+
+---
+
 ## Laravel
 
 ```bash

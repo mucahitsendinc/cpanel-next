@@ -286,7 +286,34 @@ const S = {
     storePassword:'cPanel şifremi kasada sakla (otomatik giriş)',
     storePasswordHint:'phpMyAdmin ve Dosya Yöneticisi tek tıkla, şifre sormadan açılır. Şifre ana şifrenizle AES-256-GCM ile şifrelenip 0600 izinli dosyada saklanır. Kapatırsanız bu ekranlar cPanel giriş sayfasına yönlendirir.',
     autoLoginOn:'otomatik giriş',
-    autoLoginNote:'Bu bağlantılar cPanel’e sizin adınıza giriş yapar ve doğrudan hedefe götürür. Şifre yalnızca tarayıcınızdan cPanel’e gider; başka hiçbir yere gönderilmez.'},
+    autoLoginNote:'Bu bağlantılar cPanel’e sizin adınıza giriş yapar ve doğrudan hedefe götürür. Şifre yalnızca tarayıcınızdan cPanel’e gider; başka hiçbir yere gönderilmez.',
+    mail:'E-posta',ftp:'FTP',history:'Geçmiş',
+    tabMailSub:'E-posta hesapları, şifreler ve bağlantı ayarları',
+    tabFtpSub:'FTP hesapları ve bağlantı bilgileri',
+    tabHistorySub:'Geri alma noktaları ve sunucudaki çalıştırmalar',
+    mailAccounts:'E-posta hesapları',mailAccountsSub:'Bu hesaptaki posta kutuları.',
+    newMail:'Yeni e-posta hesabı',address:'Adres',quota:'Kota (MB)',quotaUnlimited:'sınırsız',
+    used:'Kullanılan',noMail:'Henüz e-posta hesabı yok.',
+    noMailBody:'Bir posta kutusu açtığınızda burada görünecek; şifresini değiştirebilir ve bağlantı ayarlarını görebilirsiniz.',
+    noMailDomains:'Bu hesapta posta domaini yok.',
+    mailSettings:'Bağlantı ayarları',mailSettingsSub:'Bu değerler sunucudan okunuyor; elle tahmin edilmiyor.',
+    incoming:'Gelen (IMAP)',incomingPop:'Gelen (POP3)',outgoing:'Giden (SMTP)',
+    secure:'Güvenli (SSL/TLS)',insecure:'Şifresiz',server:'Sunucu',portLabel:'Port',username:'Kullanıcı adı',
+    mailDeleteWarn:'{name} posta kutusu ve İÇİNDEKİ BÜTÜN POSTALAR silinecek. Onaylamak için adresi yazın.',
+    ftpAccounts:'FTP hesapları',ftpAccountsSub:'Sunucuya dosya bağlanmak için kullanılan hesaplar.',
+    newFtp:'Yeni FTP hesabı',ftpDir:'Erişebileceği klasör',ftpDirHelp:'Ev dizinine göreli. Boş bırakırsanız ev dizininin tamamı.',
+    noFtp:'FTP hesabı yok.',
+    noFtpBody:'cPanel FTP’yi v86’dan beri varsayılan kapalı gönderiyor; hostunuz kapatmış olabilir.',
+    ftpDisabled:'Bu sunucuda FTP kapalı görünüyor.',
+    ftpLogin:'Giriş adı',ftpDeleteWarn:'{name} FTP hesabı silinecek. Dosyalar SİLİNMEZ. Onaylamak için kullanıcı adını yazın.',
+    backupDownload:'Yedek al ve indir',backupDownloadSub:'Sunucuda dışa aktarılıp bilgisayarınıza indirilir.',
+    downloadFiles:'Dosyaları indir',revealInFinder:'Klasörde göster',
+    downloadedTo:'İndirildi: {path}',
+    changePassword:'cPanel şifresini değiştir',
+    changePasswordSub:'Sunucudaki hesabınızın şifresi. Kasadaki kopya da güncellenir.',
+    currentPassword:'Mevcut şifre',newPassword:'Yeni şifre',newPasswordAgain:'Yeni şifre (tekrar)',
+    passwordMismatch:'İki şifre aynı değil.',passwordChanged:'Şifre değiştirildi.',
+    rollbackSection:'Geri alma noktaları',logsSection:'Sunucudaki çalıştırmalar'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -413,7 +440,35 @@ const S = {
     storePassword:'Store my cPanel password in the vault (auto login)',
     storePasswordHint:'phpMyAdmin and File Manager then open in one click without asking for a password. It is encrypted with your master password (AES-256-GCM) in a 0600 file. With this off, those screens redirect to the cPanel login.',
     autoLoginOn:'auto login',
-    autoLoginNote:'These links sign in to cPanel for you and land on the target. Your password only travels from your browser to cPanel; it is sent nowhere else.'}
+    autoLoginNote:'These links sign in to cPanel for you and land on the target. Your password only travels from your browser to cPanel; it is sent nowhere else.',
+    mail:'Email',ftp:'FTP',history:'History',
+    tabMailSub:'Email accounts, passwords and connection settings',
+    tabFtpSub:'FTP accounts and connection details',
+    tabHistorySub:'Restore points and recent runs on the server',
+    mailAccounts:'Email accounts',mailAccountsSub:'The mailboxes on this account.',
+    newMail:'New email account',address:'Address',quota:'Quota (MB)',quotaUnlimited:'unlimited',
+    used:'Used',noMail:'No email accounts yet.',
+    noMailBody:'Once you create a mailbox it appears here; you can change its password and see its connection settings.',
+    noMailDomains:'This account has no mail domains.',
+    mailSettings:'Connection settings',mailSettingsSub:'These values are read from the server, not guessed.',
+    incoming:'Incoming (IMAP)',incomingPop:'Incoming (POP3)',outgoing:'Outgoing (SMTP)',
+    secure:'Secure (SSL/TLS)',insecure:'Plain',
+    server:'Server',portLabel:'Port',username:'Username',
+    mailDeleteWarn:'The mailbox {name} and EVERY MESSAGE IN IT will be deleted. Type the address to confirm.',
+    ftpAccounts:'FTP accounts',ftpAccountsSub:'Accounts used to connect to the server over FTP.',
+    newFtp:'New FTP account',ftpDir:'Folder it can reach',ftpDirHelp:'Relative to your home directory. Leave empty for the whole home directory.',
+    noFtp:'No FTP accounts.',
+    noFtpBody:'cPanel has shipped FTP disabled by default since v86; your host may have turned it off.',
+    ftpDisabled:'FTP looks disabled on this server.',
+    ftpLogin:'Login name',ftpDeleteWarn:'The FTP account {name} will be deleted. Files are NOT deleted. Type the username to confirm.',
+    backupDownload:'Back up and download',backupDownloadSub:'Exported on the server and downloaded to your computer.',
+    downloadFiles:'Download files',revealInFinder:'Show in folder',
+    downloadedTo:'Downloaded: {path}',
+    changePassword:'Change cPanel password',
+    changePasswordSub:'The password of your account on the server. The copy in the vault is updated too.',
+    currentPassword:'Current password',newPassword:'New password',newPasswordAgain:'New password (again)',
+    passwordMismatch:'The two passwords do not match.',passwordChanged:'Password changed.',
+    rollbackSection:'Restore points',logsSection:'Runs on the server'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -611,7 +666,15 @@ function renderMain() {
     } }, s('backToTerminal'))));
 
   const main = el('main', {});
-  const TABS = ['overview', 'deploy', 'database', 'backups', 'logs', 'settings'];
+  /*
+   * Sekmeler ALANLARA göre, işlemlere göre değil.
+   *
+   * Eskiden "Yedekler" ve "Kayıtlar" ayrı iki sekmeydi; ikisi de "ne oldu,
+   * geri alabilir miyim" sorusunun parçası. Tek bir "Geçmiş" altında
+   * birleştirmek, e-posta ve FTP eklendikten sonra sekme sayısının
+   * yönetilebilir kalmasını sağlıyor.
+   */
+  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'history', 'settings'];
   const tabs = el('div', { class: 'tabs' },
     ...TABS.map((k) =>
       el('button', {
@@ -629,8 +692,8 @@ function renderMain() {
   main.append(body);
   app.append(main);
 
-  ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, backups: viewBackups,
-     logs: viewLogs, settings: viewSettings })[ST.tab](body);
+  ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, mail: viewMail,
+     ftp: viewFtp, history: viewHistory, settings: viewSettings })[ST.tab](body);
 }
 
 /* -------------------------------------------------------------- overview */
@@ -778,6 +841,15 @@ function appCard(a, jobOut, reload) {
           renderMain();
         },
       }, s('changeProject')),
+      el('button', { title: s('backupDownloadSub'), onclick: async (e) => {
+        e.target.disabled = true;
+        clear(jobOut);
+        try {
+          const r = await post('files-download', { profile: ST.profile, path: a.path });
+          renderJob(jobOut, r.jobId);
+        } catch (err) { showError(jobOut, err); }
+        e.target.disabled = false;
+      } }, '⬇ ' + s('downloadFiles')),
       el('span', { class: 'spacer', style: 'flex:1' }),
       el('button', { class: 'danger', onclick: () => askDelete(jobOut, a, reload) }, s('del'))));
 }
@@ -1466,6 +1538,20 @@ function renderJob(out, jobId, onDone) {
         if (j.result?.url) {
           head.append(el('a', { href: j.result.url, target: '_blank', rel: 'noreferrer' }, j.result.url));
         }
+        /*
+         * İndirme biten bir işte dosyanın NEREDE olduğunu söylemek yetmiyor;
+         * kullanıcı onu bulmak istiyor. Düğme dosyayı açmıyor, klasörde
+         * SEÇİLİ gösteriyor — bir .sql.gz dosyasını açmak istediği şey değil.
+         */
+        if (j.result?.path) {
+          line('d', '✓ ' + s('downloadedTo').replace('{path}', j.result.path));
+          const reveal = el('button', {}, '📂 ' + s('revealInFinder'));
+          reveal.addEventListener('click', async () => {
+            try { await post('reveal', { path: j.result.path }); }
+            catch (err) { line('e', '! ' + err.message); }
+          });
+          head.append(reveal);
+        }
         ST.overview = null;
         if (onDone) setTimeout(onDone, 1200);
       });
@@ -1478,19 +1564,46 @@ function renderJob(out, jobId, onDone) {
 }
 
 /* -------------------------------------------------------------- backups */
-async function viewBackups(root) {
+/**
+ * Geçmiş — geri alma noktaları ve sunucudaki çalıştırmalar bir arada.
+ *
+ * İkisi ayrı sekmeydi ama ikisi de aynı sorunun parçası: "ne oldu ve geri
+ * alabilir miyim". Ayrı durduklarında kullanıcı bir sorunu araştırırken iki
+ * sekme arasında gidip geliyordu.
+ */
+async function viewHistory(root) {
   clear(root);
-  root.append(el('div', { class: 'card' }, s('working')));
+  await viewBackups(root);
+  await viewLogs(root, { append: true });
+}
+
+async function viewBackups(root) {
+  const card = el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('rollbackSection')),
+      el('p', {}, s('rollbackWarn'))),
+    el('p', { class: 'sub' }, s('working')));
+  root.append(card);
+
   let r;
   try { r = await api('backups?profile=' + encodeURIComponent(ST.profile)); }
-  catch (err) { clear(root); return showError(root, err); }
-  clear(root);
+  catch (err) { clear(card); return showError(card, err); }
 
-  if (!r.items.length) return root.append(el('div', { class: 'card' }, el('p', { class: 'sub' }, s('noBackups'))));
+  clear(card);
+  card.append(el('div', { class: 'sec' },
+    el('h2', {}, s('rollbackSection')),
+    el('p', {}, s('rollbackWarn'))));
+
+  if (!r.items.length) {
+    card.append(el('div', { class: 'empty' },
+      el('div', { class: 'ico' }, '🗂️'),
+      el('h3', {}, s('noBackups')),
+      el('p', {}, s('noAppsBody'))));
+    return;
+  }
 
   const out = el('div', {});
-  root.append(el('div', { class: 'card' },
-    el('h2', {}, s('backups')),
+  card.append(
     el('table', {},
       el('thead', {}, el('tr', {}, el('th', {}, s('app')), el('th', {}, s('date')),
         el('th', {}, s('size')), el('th', {}, s('actions')))),
@@ -1499,7 +1612,7 @@ async function viewBackups(root) {
         el('td', { class: 'muted' }, fmtStamp(b.stamp)),
         el('td', { class: 'muted' }, b.size ? bytes(b.size) : ''),
         el('td', {}, el('button', { onclick: () => askRestore(out, b) }, s('restore'))))))),
-    out));
+    out);
 }
 
 function fmtStamp(x) {
@@ -1640,6 +1753,15 @@ async function viewDatabase(root) {
           el('td', { class: 'muted mono' }, db.users.join(', ') || s('none')),
           el('td', {}, el('div', { class: 'row' },
             pma(pmaFor(db.name), 'phpMyAdmin'),
+            el('button', { title: s('backupDownloadSub'), onclick: async (e) => {
+              e.target.disabled = true;
+              clear(dropOut);
+              try {
+                const r = await post('db-backup', { profile: ST.profile, database: db.name });
+                renderJob(dropOut, r.jobId);
+              } catch (err) { showError(dropOut, err); }
+              e.target.disabled = false;
+            } }, '⬇ ' + s('backupDownload')),
             el('button', { class: 'danger', onclick: () => askDrop(dropOut, 'db-delete', 'database', db.name, reload) }, s('del')))))))),
     dropOut));
 
@@ -2022,6 +2144,48 @@ async function viewSettings(root) {
   }
   root.append(card);
 
+  /* --- cPanel şifresi --- */
+  /*
+   * Sunucudaki hesabın şifresi. cPanel ESKİ ŞİFREYİ istiyor ve bu iyi:
+   * kasası açık bir arayüzün, kullanıcının onayı olmadan cPanel şifresini
+   * değiştirebilmesi doğru olmazdı.
+   */
+  if (ST.profile) {
+    const oldP = el('input', { type: 'password' });
+    const newP = el('input', { type: 'password' });
+    const newP2 = el('input', { type: 'password' });
+    const pwOut = el('div', {});
+    const pwBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('changePassword'));
+
+    pwBtn.addEventListener('click', async () => {
+      clear(pwOut);
+      if (newP.value !== newP2.value) {
+        return showError(pwOut, new Error(s('passwordMismatch')));
+      }
+      pwBtn.disabled = true;
+      try {
+        await post('account-password', {
+          profile: ST.profile, oldPassword: oldP.value, newPassword: newP.value });
+        oldP.value = newP.value = newP2.value = '';
+        pwOut.append(el('div', { class: 'msg info' }, s('passwordChanged')));
+        // Kasadaki kopya sunucuda güncellendi; profil listesini tazeliyoruz.
+        const st = await api('status');
+        ST.profiles = st.profiles;
+      } catch (err) { showError(pwOut, err); }
+      pwBtn.disabled = false;
+    });
+
+    root.append(el('div', { class: 'card' },
+      el('div', { class: 'sec' },
+        el('h2', {}, s('changePassword')),
+        el('p', {}, s('changePasswordSub'))),
+      el('label', {}, s('currentPassword')), oldP,
+      el('div', { class: 'grid2' },
+        el('div', {}, el('label', {}, s('newPassword')), newP),
+        el('div', {}, el('label', {}, s('newPasswordAgain')), newP2)),
+      pwBtn, pwOut));
+  }
+
   /* --- hesap ekle --- */
   renderAddProfile(root, {});
 
@@ -2055,20 +2219,287 @@ async function viewSettings(root) {
     prefOut));
 }
 
-/* ----------------------------------------------------------------- logs */
-async function viewLogs(root) {
+/* --------------------------------------------------------------- e-posta */
+/**
+ * E-posta hesapları.
+ *
+ * Bağlantı ayarları SUNUCUDAN okunuyor, varsayılmıyor: hostlar sunucu adını
+ * ve portları değiştirebiliyor ve yanlış bir "mail.domain.com:465" kullanıcıyı
+ * saatlerce uğraştırıyor.
+ */
+async function viewMail(root) {
   clear(root);
   root.append(el('div', { class: 'card' }, s('working')));
+  let d;
+  try { d = await api('mail/' + encodeURIComponent(ST.profile)); }
+  catch (err) { clear(root); return showError(root, err); }
+  clear(root);
+
+  const reload = () => { const r = root; clear(r); viewMail(r); };
+  const out = el('div', {});
+  const listCard = el('div', { class: 'card' });
+
+  function renderList() {
+    clear(listCard);
+    listCard.append(el('div', { class: 'sec' },
+      el('h2', {}, s('mailAccounts')), el('p', {}, s('mailAccountsSub'))));
+
+    if (!d.accounts.length) {
+      listCard.append(el('div', { class: 'empty' },
+        el('div', { class: 'ico' }, '✉️'),
+        el('h3', {}, s('noMail')),
+        el('p', {}, s('noMailBody'))));
+      return;
+    }
+
+    listCard.append(el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('address')), el('th', {}, s('used')),
+        el('th', {}, s('quota')), el('th', {}, s('actions')))),
+      el('tbody', {}, ...d.accounts.map((a) => el('tr', {},
+        el('td', { class: 'mono' }, a.email),
+        el('td', { class: 'muted' }, bytes(a.used)),
+        el('td', { class: 'muted' }, a.quota === null ? s('quotaUnlimited') : a.quota + ' MB'),
+        el('td', {}, el('div', { class: 'row' },
+          el('button', { onclick: () => showMailSettings(out, a.email) }, s('mailSettings')),
+          el('button', { onclick: async (e) => {
+            e.target.disabled = true;
+            clear(out);
+            try {
+              const r = await post('mail-password', { profile: ST.profile, email: a.email });
+              showSecret(out, [[s('address'), a.email]], r.password);
+            } catch (err) { showError(out, err); }
+            e.target.disabled = false;
+          } }, s('newPassword')),
+          el('button', {
+            class: 'danger',
+            onclick: () => askTypedDelete(out, {
+              route: 'mail-delete', field: 'email', value: a.email,
+              warn: s('mailDeleteWarn').replace('{name}', a.email), done: reload,
+            }),
+          }, s('del')))))))));
+  }
+
+  const local = el('input', { placeholder: 'info' });
+  const domSel = el('select', { style: 'width:auto;min-width:180px' },
+    ...d.domains.map((x) => el('option', { value: x }, '@' + x)));
+  const quota = el('input', { type: 'number', value: '0', style: 'max-width:160px' });
+  const createOut = el('div', {});
+  const createBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('create'));
+
+  createBtn.addEventListener('click', async () => {
+    if (!local.value.trim() || !domSel.value) return;
+    createBtn.disabled = true;
+    clear(createOut);
+    try {
+      const r = await post('mail-create', {
+        profile: ST.profile, user: local.value.trim(), domain: domSel.value,
+        quota: Number(quota.value) || 0,
+      });
+      local.value = '';
+      showSecret(createOut, [[s('address'), r.email]], r.password);
+      try { d = await api('mail/' + encodeURIComponent(ST.profile)); } catch (e) { /* liste eski kalsın */ }
+      renderList();
+    } catch (err) { showError(createOut, err); }
+    createBtn.disabled = false;
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' }, el('h2', {}, s('newMail'))),
+    d.domains.length
+      ? el('div', {},
+          el('label', {}, s('address')),
+          el('div', { class: 'row' }, el('div', { style: 'flex:1' }, local), domSel),
+          el('label', {}, s('quota')), quota,
+          el('p', { class: 'help' }, '0 = ' + s('quotaUnlimited')),
+          createBtn)
+      : el('div', { class: 'msg warn' }, s('noMailDomains')),
+    createOut));
+
+  renderList();
+  root.append(listCard, out);
+}
+
+/** Posta istemcisi ayarları — sunucunun söylediği değerler. */
+async function showMailSettings(out, address) {
+  clear(out);
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' }, s('working')));
+  let r;
+  try {
+    r = await api('mail-settings?profile=' + encodeURIComponent(ST.profile) +
+      '&email=' + encodeURIComponent(address));
+  } catch (err) { clear(out); return showError(out, err); }
+  clear(out);
+
+  const block = (title, cfg) => el('div', {},
+    el('label', {}, title),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('server')), el('dd', { class: 'mono' }, cfg.host || s('none')),
+      el('dt', {}, s('incoming')), el('dd', { class: 'mono' }, cfg.imap === null ? s('none') : cfg.imap),
+      el('dt', {}, s('incomingPop')), el('dd', { class: 'mono' }, cfg.pop3 === null ? s('none') : cfg.pop3),
+      el('dt', {}, s('outgoing')), el('dd', { class: 'mono' }, cfg.smtp === null ? s('none') : cfg.smtp)));
+
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('mailSettings') + ' — ' + address),
+      el('p', {}, s('mailSettingsSub'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('username')), el('dd', { class: 'mono' }, r.username || address)),
+    el('div', { class: 'grid2', style: 'margin-top:10px' },
+      block(s('secure'), r.secure), block(s('insecure'), r.plain)),
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      el('button', { onclick: () => clear(out) }, s('close')))));
+}
+
+/* ------------------------------------------------------------------- FTP */
+async function viewFtp(root) {
+  clear(root);
+  root.append(el('div', { class: 'card' }, s('working')));
+  let d;
+  try { d = await api('ftp/' + encodeURIComponent(ST.profile)); }
+  catch (err) { clear(root); return showError(root, err); }
+  clear(root);
+
+  const reload = () => { const r = root; clear(r); viewFtp(r); };
+  const out = el('div', {});
+
+  const user = el('input', { placeholder: 'deploy' });
+  const dir = el('input', { placeholder: 'public_html' });
+  const quota = el('input', { type: 'number', value: '0', style: 'max-width:160px' });
+  const createOut = el('div', {});
+  const createBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('create'));
+
+  createBtn.addEventListener('click', async () => {
+    if (!user.value.trim()) return;
+    createBtn.disabled = true;
+    clear(createOut);
+    try {
+      const r = await post('ftp-create', {
+        profile: ST.profile, user: user.value.trim(),
+        dir: dir.value.trim(), quota: Number(quota.value) || 0,
+      });
+      showSecret(createOut, [
+        [s('ftpLogin'), r.login],
+        [s('server'), d.server.host + ':' + d.server.port],
+      ], r.password);
+    } catch (err) { showError(createOut, err); }
+    createBtn.disabled = false;
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('newFtp')),
+      el('p', {}, s('server') + ': ' + (d.server.host || '?') + ':' + d.server.port)),
+    d.server.enabled ? null : el('div', { class: 'msg warn' }, s('ftpDisabled')),
+    el('label', {}, s('user')), user,
+    el('label', {}, s('ftpDir')), dir,
+    el('p', { class: 'help' }, s('ftpDirHelp')),
+    el('label', {}, s('quota')), quota,
+    el('p', { class: 'help' }, '0 = ' + s('quotaUnlimited')),
+    createBtn, createOut));
+
+  const listCard = el('div', { class: 'card' },
+    el('div', { class: 'sec' }, el('h2', {}, s('ftpAccounts')), el('p', {}, s('ftpAccountsSub'))));
+
+  if (!d.accounts.length) {
+    listCard.append(el('div', { class: 'empty' },
+      el('div', { class: 'ico' }, '📡'),
+      el('h3', {}, s('noFtp')),
+      el('p', {}, s('noFtpBody'))));
+  } else {
+    listCard.append(el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('ftpLogin')), el('th', {}, s('folder')),
+        el('th', {}, s('quota')), el('th', {}, s('actions')))),
+      el('tbody', {}, ...d.accounts.map((a) => el('tr', {},
+        el('td', { class: 'mono' }, a.user),
+        el('td', { class: 'muted mono' }, a.dir || '~'),
+        el('td', { class: 'muted' }, a.quota === null ? s('quotaUnlimited') : a.quota + ' MB'),
+        el('td', {}, el('div', { class: 'row' },
+          el('button', { onclick: async (e) => {
+            e.target.disabled = true;
+            clear(out);
+            try {
+              const r = await post('ftp-password', { profile: ST.profile, user: a.user });
+              showSecret(out, [[s('ftpLogin'), a.user]], r.password);
+            } catch (err) { showError(out, err); }
+            e.target.disabled = false;
+          } }, s('newPassword')),
+          // Ana FTP hesabı silinemez; cPanel de reddediyor.
+          a.type === 'main' ? null : el('button', {
+            class: 'danger',
+            onclick: () => askTypedDelete(out, {
+              route: 'ftp-delete', field: 'user', value: a.user,
+              warn: s('ftpDeleteWarn').replace('{name}', a.user), done: reload,
+            }),
+          }, s('del')))))))));
+  }
+  root.append(listCard, out);
+}
+
+/* ------------------------------------------------------- ortak yardımcılar */
+
+/**
+ * Bir kez gösterilecek sır (şifre) kartı.
+ *
+ * cPanel de biz de bu şifreyi sonradan okuyamıyoruz; kullanıcı bu kartı
+ * kapattığında ya kaydetmiş olmalı ya da yenisini üretmeli. Kopyalama
+ * düğmesi bu yüzden burada.
+ */
+function showSecret(out, rows, password) {
+  clear(out);
+  const card = el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('dl', { class: 'kv' }, ...rows.flatMap(function (pair) {
+      return [el('dt', {}, pair[0]), el('dd', { class: 'mono' }, pair[1])];
+    })));
+  if (password) {
+    card.append(
+      el('label', {}, s('dbPassword')),
+      el('div', { class: 'row' },
+        el('code', { style: 'flex:1;word-break:break-all' }, password), copyBtn(password)),
+      el('div', { class: 'msg warn', style: 'margin-top:12px' }, s('passOnce')));
+  }
+  card.append(el('div', { class: 'row', style: 'margin-top:12px' },
+    el('button', { onclick: () => clear(out) }, s('close'))));
+  out.append(card);
+}
+
+/** Adı birebir yazmadan silinmeyen her şey için ortak onay kutusu. */
+function askTypedDelete(out, opts) {
+  clear(out);
+  const input = el('input', { placeholder: opts.value });
+  const go = el('button', { class: 'danger', style: 'margin-top:12px' }, s('del'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      const body = { profile: ST.profile, confirm: input.value };
+      body[opts.field] = opts.value;
+      await post(opts.route, body);
+      opts.done();
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg warn' }, opts.warn),
+    el('label', {}, s('typeToConfirm')), input,
+    el('div', { class: 'row', style: 'margin-top:12px' },
+      go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+  setTimeout(() => input.focus(), 30);
+}
+
+/* ----------------------------------------------------------------- logs */
+async function viewLogs(root, { append = false } = {}) {
+  if (!append) clear(root);
+  const holder = el('div', {}, el('div', { class: 'card' }, s('working')));
+  root.append(holder);
   const appRoot = ST.overview?.apps?.[0]?.path ?? '';
   let r;
   try {
     r = await api('logs?profile=' + encodeURIComponent(ST.profile) +
       (appRoot ? '&appRoot=' + encodeURIComponent(appRoot) : ''));
-  } catch (err) { clear(root); return showError(root, err); }
-  clear(root);
+  } catch (err) { clear(holder); return showError(holder, err); }
+  clear(holder);
+  root = holder;
 
   root.append(el('div', { class: 'card' },
-    el('h2', {}, s('serverRuns')),
+    el('div', { class: 'sec' }, el('h2', {}, s('logsSection'))),
     r.runs.length === 0 ? el('p', { class: 'sub' }, s('none')) :
       el('div', {}, ...r.runs.map((run) => el('div', { style: 'margin-bottom:14px' },
         el('div', { class: 'row' },

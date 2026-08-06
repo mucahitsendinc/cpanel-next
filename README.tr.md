@@ -193,6 +193,80 @@ Güvenlik o sunucuda sonradan eklenen bir katman değil, ilk yazılan şey:
 
 ---
 
+## E-posta, FTP ve yedekler
+
+Yayınlamak tek başına yetmiyor: bir site canlıya çıktığında posta kutusu,
+dosya erişimi ve yedek de gerekiyor. Bunların hepsi cPanel'de ayrı ekranlar;
+burada aynı arayüzde.
+
+### E-posta
+
+Posta kutusu açma, silme, şifre yenileme ve kota. **Bağlantı ayarları
+sunucudan okunuyor**, tahmin edilmiyor — hostlar sunucu adını ve portları
+değiştirebiliyor ve yanlış bir `mail.domain.com:465` insanı saatlerce
+uğraştırıyor. Ekranda hem güvenli (SSL/TLS) hem şifresiz değerler, IMAP, POP3
+ve SMTP portlarıyla birlikte duruyor.
+
+Posta kutusu silmek adresi birebir yazmayı gerektiriyor: içindeki bütün
+postalar da gidiyor.
+
+### FTP
+
+Hesap açma, listeleme, şifre yenileme, silme. Giriş adı `kullanıcı@sunucu`
+biçiminde hazır veriliyor.
+
+İki not:
+
+- **Noktalar korunuyor.** cPanel'in `disallowdot` varsayılanı `1` ve
+  `deploy.bot` sessizce `deploybot` oluyor; kullanıcı sonra bağlanamıyor ve
+  sebebini göremiyor. Açıkça `0` gönderiyoruz.
+- **Silmek dosyaları silmiyor.** cPanel'in `destroy` parametresi hesabın ev
+  dizinini de siliyor ve varsayılan ev dizini uygulamanın kendisi olabiliyor —
+  yani bir FTP hesabını kaldırmak siteyi götürebilir. O parametre hiç
+  gönderilmiyor.
+
+### Yedek al ve indir
+
+Her veritabanının yanında bir düğme: sunucuda dışa aktarılıp bilgisayarınıza
+iniyor. Uygulama kartlarında da aynısı var, dosyalar için.
+
+```
+~/Downloads/cpanel-next/shop-20260806143000.sql.gz
+```
+
+İndiği anda **"Klasörde göster"** düğmesi çıkıyor — dosyayı açmıyor, Finder'da
+seçili gösteriyor.
+
+Nasıl çalıştığı, çünkü göründüğü kadar basit değil:
+
+- cPanel'in UAPI'sinde **indirme ucu yok**. `Fileman::get_file_content` var ama
+  aralık desteklemiyor ve JSON döndürdüğü için ikili dosyada bozuluyor; klasik
+  `/download?file=…` adresi ise oturum çerezi istiyor, token kabul etmiyor.
+  Bu yüzden dosya sunucuda base64'e çevrilip parçalara bölünüyor, parçalar tek
+  tek okunup yerelde birleştiriliyor — yüklemenin aynadaki hâli. Sonunda boyut
+  karşılaştırılıyor: eksik inen bir dosya sessizce kabul edilmiyor.
+- Veritabanı için `mysqldump` gerekiyor ama **var olan kullanıcıların şifresi
+  bizde yok**. Kısa ömürlü bir MySQL kullanıcısı açılıp iş biter bitmez
+  siliniyor — hata hâlinde de. Şifre komut satırına **yazılmıyor**:
+  `mysqldump -pSIFRE` paylaşımlı bir sunucuda `ps` çıktısında herkese görünür.
+  Onun yerine 0600 izinli geçici bir `--defaults-extra-file` kullanılıyor.
+- 200 MB üstü dosyalarda araç duruyor ve cPanel'in kendi indirme ekranına
+  yönlendiriyor: bu yol her parça için bir HTTP turu demek ve o boyutta
+  dakikalar sürer. Sessizce denemek yerine söylemek doğru olan.
+
+### cPanel şifresini değiştirme
+
+Ayarlar'da. cPanel **eski şifreyi istiyor** ve bu iyi: kasası açık bir
+arayüzün, kullanıcının onayı olmadan cPanel şifresini değiştirebilmesi doğru
+olmazdı. Otomatik giriş açıksa kasadaki kopya da güncelleniyor.
+
+> `enablemysql` bayrağı **gönderilmiyor**. cPanel bu bayrakla MySQL
+> kullanıcılarının şifresini de eşitliyor — yani `.env` dosyalarındaki
+> `DB_PASSWORD` bir anda geçersiz oluyor ve yayındaki her uygulama
+> veritabanına bağlanamıyor. Sessizce yapılacak bir şey değil.
+
+---
+
 ## Laravel
 
 ```bash
