@@ -47,18 +47,21 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true
+      "notarize": true,
+      "icon": "build/icon.icns"
     },
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "build/icon.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "category": "Development"
+      "category": "Development",
+      "icon": "build/icon.png"
     }
   },
   "dependencies": {

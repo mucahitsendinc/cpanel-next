@@ -160,6 +160,33 @@ progress{width:100%;height:6px}
 .howto li b{display:block;margin-bottom:2px;font-size:13.5px}
 .howto li span{color:var(--dim)}
 
+/* ---------------------------------------------------------------------------
+ * Masaüstü kabuğu.
+ *
+ * Electron'da başlık çubuğu gizli (`hiddenInset`) — daha derli toplu duruyor
+ * ama iki şeyi kendimiz halletmek zorundayız:
+ *
+ *   1. SÜRÜKLEME. Başlık çubuğu olmayınca pencereyi tutacak yer kalmıyor.
+ *      Üst şeridi sürükleme bölgesi yapıyoruz.
+ *   2. TRAFİK IŞIKLARI. Kapat/küçült/büyüt düğmeleri içeriğin ÜSTÜNE biniyor;
+ *      sol tarafta onlara yer açıyoruz.
+ *
+ * ⚠ Sürükleme bölgesi içindeki DÜĞMELER tıklanamaz hâle geliyor — sürükleme
+ * tıklamayı yutuyor. Hepsini tek tek `no-drag` yapmak gerekiyor.
+ *
+ * Bu kurallar yalnızca `body.shell-mac` altında: aynı sayfa tarayıcıda da
+ * çalışıyor ve orada sol üstte sebepsiz bir boşluk oluşurdu.
+ * ------------------------------------------------------------------------ */
+body.shell-mac header{
+  -webkit-app-region:drag;
+  padding-left:92px;   /* trafik ışıkları ~78px, biraz nefes payı */
+  padding-top:14px;padding-bottom:14px;
+}
+body.shell-mac header button,
+body.shell-mac header select,
+body.shell-mac header a,
+body.shell-mac header input{ -webkit-app-region:no-drag }
+
 /* Üst araç çubuğu — cPanel'in kendi ekranlarına bağlantılar */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .toolbar a{text-decoration:none}
@@ -579,6 +606,13 @@ function cpanelUrl(target, params, fallback) {
 
 /* ---------------------------------------------------------------- render */
 async function boot() {
+  /*
+   * Masaüstü kabuğu kendini sorgu parametresiyle tanıtıyor; sürükleme alanı ve
+   * trafik ışığı boşluğu yalnızca orada uygulanıyor (bkz. `body.shell-mac`).
+   */
+  const shell = new URLSearchParams(location.search).get('shell');
+  if (shell) document.body.classList.add('shell-' + shell);
+
   const st = await api('status');
   ST.locked = st.locked;
   ST.profiles = st.profiles;

@@ -80,7 +80,19 @@ async function start() {
   });
 
   window.once('ready-to-show', () => window.show());
-  await window.loadURL(server.url);
+
+  /*
+   * Sayfaya HANGİ KABUKTA olduğunu söylüyoruz.
+   *
+   * Aynı HTML hem tarayıcıda hem burada çalışıyor. Pencere sürükleme alanı ve
+   * trafik ışıklarına bırakılan boşluk YALNIZCA masaüstünde anlamlı; tarayıcıda
+   * uygulanırsa sol üstte sebepsiz bir boşluk oluşur.
+   *
+   * Sorgu parametresiyle geçiyoruz çünkü sayfa `sandbox: true` ile ve preload
+   * olmadan çalışıyor — araya bir köprü koymak bu bilgi için fazla olurdu.
+   */
+  const shellUrl = `${server.url}&shell=${process.platform === 'darwin' ? 'mac' : 'other'}`;
+  await window.loadURL(shellUrl);
 
   /*
    * DIŞ BAĞLANTILAR SİSTEM TARAYICISINDA.
