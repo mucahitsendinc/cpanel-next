@@ -513,10 +513,11 @@ Modes: `none`, `migrate`, `migrate-seed`, `fresh-seed` — via flags
   "framework": "laravel",
   "laravel": {
     "migrate": "none",
-    "firstMigrate": "fresh-seed",
+    "firstMigrate": "migrate-seed",
     "vendor": "auto",
     "forceDebugOff": true,
-    "optimize": true
+    "optimize": true,
+    "clean": true
   }
 }
 ```
@@ -524,10 +525,35 @@ Modes: `none`, `migrate`, `migrate-seed`, `fresh-seed` — via flags
 > `migrate:fresh` **drops every table**. It is printed in red on the review
 > screen and is never the default for an update.
 
-After install, in order: write permissions → `storage:link` → migration →
-`optimize:clear` → `config:cache` → `route:cache` → `view:cache`. The last two
-are non-fatal — `route:cache` fails on closure routes, and that should not stop
-a release.
+The order of the steps:
+
+```
+write permissions → optimize:clear → storage:link → migration
+                 → config:cache → route:cache → view:cache
+                 → cache:clear → log truncation
+```
+
+Two details explain that order:
+
+- **`optimize:clear` runs BEFORE the migration.** Once `config:cache` has run,
+  Laravel stops reading `.env` and uses `bootstrap/cache/config.php` instead.
+  Writing fresh database credentials into `.env` and then migrating against a
+  stale cache makes the failure surface as a database error — pointing you at
+  entirely the wrong place.
+- **The final step is `cache:clear`, not `optimize:clear`** (when `optimize` is
+  on). A full clear would delete the caches built one step earlier, so every
+  release would build them and immediately throw them away. `cache:clear` only
+  flushes the application (data) cache. With `optimize: false` there is nothing
+  to preserve, so a full `optimize:clear` runs there instead.
+
+`clean` (on by default) is those last two steps: the application cache is
+flushed and the `.log` files under `storage/logs` are **truncated**, not
+deleted. `rm` is avoided because if PHP-FPM holds the file open it keeps writing
+to an unlinked inode and the logs vanish silently; `: > file` preserves the
+inode, its owner and its mode.
+
+`route:cache` and `view:cache` are non-fatal — `route:cache` fails on closure
+routes, and that should not stop a release. Log truncation is non-fatal too.
 
 ### Worth knowing
 

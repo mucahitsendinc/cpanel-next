@@ -412,6 +412,8 @@ const S = {
     lvTitle:'Laravel ayarları',lvFolder:'Uygulama klasörü',lvAuto:'domainin belge kökü — seçilmiyor',
     lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
+    lvClean:'Yayından sonra temizlik yap',
+    lvCleanHelp:'Uygulama önbelleğini boşaltır ve storage/logs içindeki .log dosyalarını sıfırlar. Önbellek zaten migration’dan önce temizleniyor; buradaki adım eski verinin ve eski log birikiminin kalmaması için.',
     mgNone:'Çalıştırma',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
     mgFreshSeed:'migrate:fresh --seed — TÜM TABLOLAR SİLİNİR',
     vnAuto:'auto — composer.lock değiştiyse gönder',vnAlways:'always — her zaman gönder',
@@ -580,6 +582,8 @@ const S = {
     lvTitle:'Laravel settings',lvFolder:'Application folder',lvAuto:'the domain’s document root — not selectable',
     lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
+    lvClean:'Clean up after publishing',
+    lvCleanHelp:'Flushes the application cache and truncates the .log files in storage/logs. Caches are already cleared before migration; this step is about leaving no stale data or accumulated logs behind.',
     mgNone:'Do not run',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
     mgFreshSeed:'migrate:fresh --seed — DROPS EVERY TABLE',
     vnAuto:'auto — ship when composer.lock changes',vnAlways:'always — ship every time',
@@ -1062,15 +1066,25 @@ function askLaravelUpdate(out, site, reload) {
     }
   });
 
+  const clean = el('input', { type: 'checkbox', style: 'width:auto' });
+  clean.checked = true;
+
   const go = el('button', { class: 'primary', style: 'margin-top:14px' }, '⬆ ' + s('update'));
   go.addEventListener('click', async () => {
     go.disabled = true;
     try {
+      /*
+       * Migration kipi seçilmediyse `migrate` GÖNDERİLMİYOR — projedeki ayar
+       * geçerli kalsın diye. Temizlik ise her zaman gönderiliyor: kutu ekranda
+       * ve durumu görünür, yani burada "sessiz karar" yok.
+       */
+      const laravel = { clean: clean.checked };
+      if (migrate.value) laravel.migrate = migrate.value;
+
       const r = await post('app-update', {
         profile: ST.profile, appRoot: site.appRoot, domain: site.domain,
         projectPath: project,
-        // Boş seçim = projedeki ayar. Arayüz burada bir kip UYDURMUYOR.
-        laravel: migrate.value ? { migrate: migrate.value } : undefined,
+        laravel,
       });
       renderJob(out, r.jobId, reload);
     } catch (err) { go.disabled = false; showError(out, err); }
@@ -1085,6 +1099,10 @@ function askLaravelUpdate(out, site, reload) {
       el('dt', {}, s('lvFolder')), el('dd', { class: 'mono' }, '~/' + site.appRoot)),
     el('label', {}, s('lvMigrate')), migrate, warn,
     el('p', { class: 'help' }, s('lvMigrateHelp')),
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+        clean, ' ' + s('lvClean'))),
+    el('p', { class: 'help' }, s('lvCleanHelp')),
     el('div', { class: 'row', style: 'margin-top:8px' },
       go, el('button', { onclick: () => clear(out) }, s('cancel')))));
 }
@@ -1636,6 +1654,9 @@ async function viewDeployLaravel(root, d, o) {
     el('option', { value: 'always' }, s('vnAlways')),
     el('option', { value: 'server' }, s('vnServer')));
   const keepDebug = el('input', { type: 'checkbox', style: 'width:auto' });
+  // Yayın sonrası temizlik — varsayılan açık; log sıfırlıyor, veriye dokunmuyor.
+  const cleanUp = el('input', { type: 'checkbox', style: 'width:auto' });
+  cleanUp.checked = true;
 
   /* --- veritabanı --- */
   const dbMode = el('select', {},
@@ -1726,7 +1747,10 @@ async function viewDeployLaravel(root, d, o) {
       const pf = await post('laravel-preflight', { profile: ST.profile, domain: domSel.value });
       renderLaravelConfirm(out, pf, {
         domain: domSel.value,
-        laravel: { migrate: migrate.value, vendor: vendorSel.value, keepDebug: keepDebug.checked },
+        laravel: {
+          migrate: migrate.value, vendor: vendorSel.value,
+          keepDebug: keepDebug.checked, clean: cleanUp.checked,
+        },
         db: collectDb(),
       });
       out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1755,7 +1779,11 @@ async function viewDeployLaravel(root, d, o) {
         el('p', { class: 'help', style: 'margin-top:10px' }, s('lvEnvNote')),
         el('div', { class: 'row', style: 'margin-top:14px' },
           el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
-            keepDebug, ' ' + s('lvKeepDebug'))))),
+            keepDebug, ' ' + s('lvKeepDebug'))),
+        el('div', { class: 'row', style: 'margin-top:10px' },
+          el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+            cleanUp, ' ' + s('lvClean'))),
+        el('p', { class: 'help' }, s('lvCleanHelp')))),
     el('div', { class: 'row', style: 'margin-top:18px' }, nextBtn),
     out));
 }

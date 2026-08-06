@@ -31,6 +31,7 @@ const OPTIONS = {
   'no-migrate': { type: 'boolean', default: false },
   vendor: { type: 'string' },
   'keep-debug': { type: 'boolean', default: false },
+  'no-clean': { type: 'boolean', default: false },
 
   // davranış
   lang: { type: 'string' },

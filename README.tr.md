@@ -504,10 +504,11 @@ Kipler: `none`, `migrate`, `migrate-seed`, `fresh-seed`. Bayrakla
   "framework": "laravel",
   "laravel": {
     "migrate": "none",
-    "firstMigrate": "fresh-seed",
+    "firstMigrate": "migrate-seed",
     "vendor": "auto",
     "forceDebugOff": true,
-    "optimize": true
+    "optimize": true,
+    "clean": true
   }
 }
 ```
@@ -515,10 +516,36 @@ Kipler: `none`, `migrate`, `migrate-seed`, `fresh-seed`. Bayrakla
 > `migrate:fresh` **bütün tabloları siler**. Onay ekranında kırmızı yazıyor ve
 > güncellemede asla varsayılan değil.
 
-Kurulumdan sonra sırayla: yazma izinleri → `storage:link` → migration →
-`optimize:clear` → `config:cache` → `route:cache` → `view:cache`.
+Adımların sırası:
+
+```
+yazma izinleri → optimize:clear → storage:link → migration
+              → config:cache → route:cache → view:cache
+              → cache:clear → log temizliği
+```
+
+İki ayrıntı bu sıranın sebebi:
+
+- **`optimize:clear` migration'dan ÖNCE.** `config:cache` bir kez koştuysa
+  Laravel `.env`'i artık okumuyor, `bootstrap/cache/config.php` neyse onu
+  kullanıyor. `.env`'e taze veritabanı bilgisi yazıp eski önbellekle migration
+  koşturmak, hatanın veritabanından gelmesine ve sizi tamamen yanlış yere
+  baktırmasına yol açar.
+- **Sonda `cache:clear`, `optimize:clear` DEĞİL** (`optimize` açıkken). Tam bir
+  temizlik bir adım önce kurulan önbelleği silerdi; her yayın önbelleği kurup
+  hemen çöpe atardı. `cache:clear` yalnızca uygulama (veri) önbelleğini
+  boşaltıyor. `optimize: false` ise kurulan önbellek yok, orada tam
+  `optimize:clear` koşuyor.
+
+`clean` (varsayılan açık) sondaki iki adım: uygulama önbelleği boşaltılıyor ve
+`storage/logs` içindeki `.log` dosyaları **sıfırlanıyor** — silinmiyor. `rm`
+kullanılmıyor, çünkü PHP-FPM dosyayı açık tutuyorsa bağlantısı kopmuş inode'a
+yazmaya devam eder ve loglar sessizce kaybolur; `: > dosya` inode'u, sahibi ve
+izni koruyor.
+
 `route:cache` ve `view:cache` ölümcül değil — closure kullanan rotalarda
-`route:cache` hata verir ve bunun yayını engellemesi doğru olmaz.
+`route:cache` hata verir ve bunun yayını engellemesi doğru olmaz. Log temizliği
+de ölümcül değil.
 
 ### Bilinmesi gerekenler
 

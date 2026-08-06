@@ -411,3 +411,61 @@ test('kapatmak açıkça false yazmayı gerektiriyor', () => {
   assert.equal(normalizeSettings({ forceDebugOff: false }).forceDebugOff, false);
   assert.equal(normalizeSettings({ forceDebugOff: 0 }).forceDebugOff, true);
 });
+
+/* ------------------------------------------------- yayın sonrası temizlik */
+
+test('temizlik en sonda: önce önbellek, sonra loglar', () => {
+  const labels = artisanPlan({ clean: true, optimize: true }).map((s) => s.label);
+  assert.deepEqual(labels.slice(-2), ['cache:clear', 'log temizliği']);
+});
+
+test('optimize açıkken sonda optimize:clear KOŞMUYOR', () => {
+  /*
+   * Bu testin varlık sebebi: sonda tam bir `optimize:clear`, bir adım önce
+   * kurulan config/route/view önbelleğini silerdi. Her deploy önbelleği kurup
+   * hemen çöpe atar, site kalıcı olarak önbelleksiz koşardı.
+   */
+  const steps = artisanPlan({ clean: true, optimize: true });
+  const cacheAt = steps.findIndex((x) => x.label === 'config:cache');
+  const clearAfter = steps.slice(cacheAt).filter((x) => /optimize:clear/.test(x.cmd));
+  assert.equal(cacheAt !== -1, true);
+  assert.deepEqual(clearAfter, []);
+});
+
+test('optimize kapalıyken sonda tam optimize:clear var', () => {
+  // Kurulan önbellek yok, o yüzden tam temizlik bedava.
+  const steps = artisanPlan({ clean: true, optimize: false });
+  assert.equal(steps.at(-2).label, 'optimize:clear');
+  assert.match(steps.at(-2).cmd, /optimize:clear/);
+});
+
+test('log adımı SIFIRLIYOR, silmiyor', () => {
+  const step = artisanPlan({ clean: true }).find((x) => x.label === 'log temizliği');
+  /*
+   * `rm` olursa: PHP-FPM dosyayı açık tutuyorsa bağlantısı kopmuş inode'a
+   * yazmaya devam eder ve loglar sessizce kaybolur. `: > dosya` inode'u,
+   * sahibi ve izni koruyor.
+   */
+  assert.doesNotMatch(step.cmd, /(^|\s)rm\s/);
+  assert.match(step.cmd, /:\s*>/);
+  assert.match(step.cmd, /storage\/logs/);
+  // Alt dizinlere inmiyor ve yalnızca .log dosyalarına dokunuyor.
+  assert.match(step.cmd, /-maxdepth 1/);
+  assert.match(step.cmd, /-name "\*\.log"/);
+  // Yayını düşürmemeli: log temizlenemedi diye deploy başarısız sayılmaz.
+  assert.equal(step.fatal, false);
+});
+
+test('temizlik kapatılabiliyor', () => {
+  const labels = artisanPlan({ clean: false, optimize: true }).map((s) => s.label);
+  assert.equal(labels.includes('log temizliği'), false);
+  assert.equal(labels.includes('cache:clear'), false);
+  // Migration öncesi temizlik ise `clean`'den BAĞIMSIZ — o şema için gerekli.
+  assert.equal(labels.includes('config:clear'), true);
+});
+
+test('temizlik varsayılan açık, kapatmak açıkça false gerektiriyor', () => {
+  assert.equal(normalizeSettings({}).clean, true);
+  assert.equal(normalizeSettings({ clean: false }).clean, false);
+  assert.equal(normalizeSettings({ clean: 0 }).clean, true);
+});
