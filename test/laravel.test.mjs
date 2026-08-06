@@ -244,9 +244,24 @@ test('migration daima --force ile koşuyor — üretimde soru sorulamaz', () => 
   }
 });
 
-test('yazma izinleri migration’dan ÖNCE ayarlanıyor', () => {
-  const labels = artisanPlan({ migrate: 'migrate' }).map((s) => s.label);
-  assert.ok(labels.indexOf('izinler') < labels.indexOf('migrate'));
+test('dizinler HER artisan komutundan önce açılıyor', () => {
+  /*
+   * Canlıda öğrenilen sıra: `storage/**` ve `bootstrap/cache/**` pakete
+   * girmiyor, yani ilk kurulumda o dizinler yok. Laravel HERHANGİ bir artisan
+   * komutunda önce bootstrap oluyor ve oralara yazamazsa daha başlarken
+   * ölüyor — ilk kurulum "APP_KEY" adımında bu yüzden patlamıştı.
+   */
+  for (const opts of [{ keyGenerate: true }, { migrate: 'fresh-seed' }, { optimize: true }]) {
+    const steps = artisanPlan(opts);
+    const firstArtisan = steps.findIndex((x) => /artisan/.test(x.cmd));
+    const mkdir = steps.findIndex((x) => /mkdir -p storage/.test(x.cmd));
+    assert.equal(mkdir, 0, JSON.stringify(opts));
+    if (firstArtisan !== -1) assert.ok(mkdir < firstArtisan, JSON.stringify(opts));
+  }
+});
+
+test('storage/app/public da açılıyor — storage:link onu bekliyor', () => {
+  assert.match(artisanPlan({}).find((x) => /mkdir/.test(x.cmd)).cmd, /storage\/app\/public/);
 });
 
 test('önbellek önce temizlenip sonra kuruluyor', () => {
