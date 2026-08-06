@@ -321,6 +321,50 @@ Kabuğun kendine ait dört kararı var:
   token'ı tutan bir sunucu var; kullanıcının görmediği bir süreç onu bellekte
   tutmaya devam etmemeli.
 
+### İmzalama ve notarization (macOS)
+
+```bash
+cd desktop
+npm run signing:check   # ne eksik, tek ekranda söyler
+npm run build:mac
+```
+
+`signing:check` var çünkü `electron-builder` eksik bir kurulumda **sessizce
+devam ediyor**: uygun sertifika bulamazsa eline geçen ilk kimliği deniyor, üç
+kez tekrar ediyor ve sonunda imzasız bir uygulama üretiyor — hata build
+günlüğünün ortasında kayboluyor.
+
+Gereken üç şey:
+
+1. **Developer ID Application sertifikası.**
+   developer.apple.com → Certificates → + → *Developer ID Application*.
+   ⚠ *Apple Development* yalnızca kendi cihazınızda geliştirme, *Apple
+   Distribution* ise App Store içindir; indirilen bir `.dmg` ikisiyle de
+   olmuyor.
+
+2. **Uygulamaya özel şifre.** appleid.apple.com → Oturum Açma ve Güvenlik →
+   Uygulamaya Özel Şifreler.
+
+3. **Ortam değişkenleri:**
+   ```bash
+   export APPLE_ID="mail@ornek.com"
+   export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+   export APPLE_TEAM_ID="XXXXXXXXXX"       # Membership → Team ID
+   # birden çok Developer ID sertifikanız varsa:
+   export CSC_NAME="Developer ID Application: Adınız (XXXXXXXXXX)"
+   ```
+
+Sertleştirilmiş çalışma zamanı (hardened runtime) açık ve `build/
+entitlements.mac.plist` ile geliyor. İçindeki izinler zorunlu: V8 çalışma
+anında makine kodu üretiyor, `allow-jit` ve
+`allow-unsigned-executable-memory` olmadan uygulama açılır açılmaz çöküyor.
+`disable-library-validation` ise Electron'un yardımcı süreçleri ve cPanel
+girişinde kullanılan Chromium farklı bir ekiple imzalı olduğu için gerekiyor.
+
+App Sandbox **kasten yok**: araç proje klasörlerini okuyor, `~/Downloads`'a
+yazıyor ve Finder'da dosya gösteriyor. App Store dışı dağıtımda sandbox
+zorunlu değil ve her biri ayrı bir izin dansı gerektirirdi.
+
 > macOS'ta imzalanmamış bir uygulama Gatekeeper'a takılıyor: ilk açılışta sağ
 > tık → Aç gerekiyor. Düzgün dağıtım için Apple Developer hesabı ve
 > notarization gerekli — kod tarafında hazır, imza sizin hesabınızla yapılıyor.

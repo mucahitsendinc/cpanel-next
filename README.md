@@ -326,6 +326,51 @@ The shell makes four decisions of its own:
   token runs in the background; a process the user cannot see should not keep
   it in memory.
 
+### Signing and notarization (macOS)
+
+```bash
+cd desktop
+npm run signing:check   # tells you what is missing, on one screen
+npm run build:mac
+```
+
+`signing:check` exists because `electron-builder` **carries on silently** with
+an incomplete setup: if it cannot find a suitable certificate it tries whatever
+identity it can find, retries three times, and ends up producing an unsigned
+app — with the error buried in the build log.
+
+Three things are required:
+
+1. **A Developer ID Application certificate.**
+   developer.apple.com → Certificates → + → *Developer ID Application*.
+   ⚠ *Apple Development* is for building on your own devices and *Apple
+   Distribution* is for the App Store; a downloadable `.dmg` works with
+   neither.
+
+2. **An app-specific password.** appleid.apple.com → Sign-In and Security →
+   App-Specific Passwords.
+
+3. **Environment variables:**
+   ```bash
+   export APPLE_ID="you@example.com"
+   export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+   export APPLE_TEAM_ID="XXXXXXXXXX"       # Membership → Team ID
+   # if you hold more than one Developer ID certificate:
+   export CSC_NAME="Developer ID Application: Your Name (XXXXXXXXXX)"
+   ```
+
+Hardened runtime is on, with `build/entitlements.mac.plist`. Those
+entitlements are not optional: V8 generates machine code at runtime, and
+without `allow-jit` and `allow-unsigned-executable-memory` the app crashes on
+launch. `disable-library-validation` is needed because Electron's helper
+processes — and the Chromium used for cPanel login — are signed by a different
+team.
+
+The App Sandbox is **deliberately absent**: the tool reads your project
+folders, writes to `~/Downloads` and reveals files in Finder. Sandboxing is not
+required for distribution outside the App Store and each of those would become
+a separate permission dance.
+
 > An unsigned app trips Gatekeeper on macOS: the first launch needs right-click
 > → Open. Proper distribution needs an Apple Developer account and
 > notarization — the code side is ready, the signing is done with your account.

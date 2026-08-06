@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    Sertleştirilmiş çalışma zamanı (hardened runtime) için ZORUNLU izinler.
+    Notarization sertleştirilmiş çalışma zamanı istiyor, sertleştirilmiş
+    çalışma zamanı da V8'in yaptığı şeyleri varsayılan olarak yasaklıyor.
+
+    allow-jit + allow-unsigned-executable-memory
+      V8 çalışma anında makine kodu üretiyor. Bu ikisi olmadan uygulama
+      açılır açılmaz çöküyor — Electron'un çalışma biçimi bu.
+
+    disable-library-validation
+      Electron'un yardımcı süreçleri ve (cPanel girişinde kullanılan)
+      playwright-core'un indirdiği Chromium, uygulamanınkinden farklı bir
+      ekiple imzalı. Bu izin olmadan yüklenemezler.
+
+    allow-dyld-environment-variables
+      Electron yardımcı süreçleri başlatırken DYLD_* değişkenleri kullanıyor.
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+
+  <!--
+    App Sandbox KASTEN YOK.
+
+    Bu araç kullanıcının proje klasörlerini okuyor, ~/Downloads'a yazıyor ve
+    Finder'da dosya gösteriyor. Sandbox içinde bunların her biri ayrı bir
+    izin dansı gerektirirdi ve App Store dışı dağıtımda sandbox zorunlu değil.
+  -->
+</dict>
+</plist>
