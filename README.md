@@ -1,7 +1,7 @@
 # cpanel-next
 
-Deploy Next.js projects to cPanel shared hosting from your terminal — or from a
-local web interface.
+Deploy Next.js and Laravel projects to cPanel shared hosting from your terminal
+— or from a local web interface.
 
 ```bash
 npm i -g cpanel-next
@@ -78,7 +78,8 @@ deploymanager login
 2. The tool logs in and **creates an API token for itself**
 3. You choose a **master password**
 4. The token is encrypted with it (scrypt + AES-256-GCM), stored `0600`
-5. **Your cPanel password is never written anywhere**
+5. **Your cPanel password is not written anywhere** unless you turn on auto
+   login for that account (see below) — and then only encrypted in the vault
 
 After that the browser never opens; only the master password is asked.
 
@@ -108,11 +109,12 @@ deploymanager doctor       connectivity and environment check
 deploymanager ui           open the local web interface
 deploymanager config       default interface and language
 deploymanager maintenance  turn the maintenance page on/off
+deploymanager db           MySQL databases (list, create, drop, users, pma)
 ```
 
 Useful flags: `--dry-run`, `--domain`, `--app-root`, `--no-build`,
 `--clean-modules`, `--confirm <name>`, `--web` / `--terminal`, `--lang tr|en`,
-`-y`, `-v`.
+`--env-local`, `-y`, `-v`.
 
 Environment: `CPANEL_NEXT_MASTER_PASSWORD`, `CPANEL_NEXT_PASSWORD`,
 `CPANEL_NEXT_TOKEN`, `CPANEL_NEXT_HOST`, `CPANEL_NEXT_USER`, `CPANEL_NEXT_LANG`.
@@ -127,6 +129,49 @@ deploymanager ui
 
 Manage accounts, domains and applications by clicking: deploy with a live log,
 roll back, start/stop/restart, remove, read logs, add and remove cPanel accounts.
+
+It is built to be understood at first glance, without prior cPanel or Node
+knowledge:
+
+- A **welcome screen** on first run explains what the tool does in three steps,
+  then asks for one account. (Previously a first-time user hit the vault-unlock
+  screen, typed a password and got `no profiles` — a door with nothing behind
+  it and no way past.)
+- Deploying is a **three-step flow** — project → target → review — with a
+  progress strip, so you always know where you are and what is left.
+- Every field carries a one-line explanation, every empty list says what it
+  means and what to do next, and the review step spells out what will be
+  deleted *and what will be kept*.
+- Applications are cards, not table rows: status, address, folder and every
+  action in one place.
+- **phpMyAdmin**, **File Manager** and **cPanel** open in one click, for the
+  account or for a specific application folder.
+- Accounts can be **edited**: server, port, username, and token renewal — with a
+  **"Test connection"** button next to each. "Is my token still valid?" gets
+  answered here, not halfway through a deploy.
+
+### Auto login
+
+Those links **sign in to cPanel for you** and land directly on the target. That
+requires storing your cPanel password; it is on by default when you add an
+account and can be turned off with one click.
+
+Why a password is needed: cPanel's web interface authenticates with a
+`cpsession` cookie, not an API token, and that cookie has to live in *your*
+browser. cPanel's own specification says of `Session::create_temp_user`:
+*"Because this function requires a valid cPanel session ID… You **must** use the
+WHM API 1 `create_user_session` function"*. WHM is out of scope for this tool, so
+there is no way to mint a browser session from a token.
+
+When stored, the password sits in the **same vault** as the token: AES-256-GCM
+under a key derived from your master password with scrypt, in a `0600` file. At
+sign-in time the local server renders a single `no-store` page whose
+`form-action` policy allows **only** that cPanel origin, and the form removes
+itself from the DOM after submitting. The password travels from your browser to
+cPanel and nowhere else; the API token never appears on that page.
+
+With it off, the links go to cPanel's login page with `goto_uri`: you type your
+password into cPanel and still land on the right screen.
 
 If you set the web interface as your default, running `deploymanager` in a
 project opens the browser with that project selected and **the terminal waits**.
@@ -151,6 +196,188 @@ Security is the first thing in that server, not a layer added later:
 
 ---
 
+## Laravel
+
+```bash
+cd ~/projects/shop
+deploymanager            # first install
+deploymanager update     # every release after that
+```
+
+### The document root is never changed
+
+The "clean" answer to Laravel's `public/` problem is `SubDomain::changedocroot`,
+pointing the document root at `<folder>/public`. This tool does not use it: it
+is impossible on a primary domain (that needs WHM), and on an addon/subdomain it
+permanently rewrites the account's configuration.
+
+Instead Laravel is installed **into the domain's own folder** and `.htaccess`
+does the work:
+
+```
+~/shop.example.com/          ← document root (untouched)
+  .htaccess                  ← sends every request into public/
+  app/ config/ vendor/ .env  ← unreachable by URL because of that rewrite
+  public/                    ← Laravel's own .htaccess takes over here
+```
+
+The application folder is therefore **not asked for** — it *is* the document
+root. Deploying into the wrong folder is structurally impossible.
+
+> This layout has a cost: the source files physically live under a web-served
+> directory. `AllowOverride None`, or mod_rewrite being off, exposes your `.env`
+> to the internet. So after deploying, the tool **actually fetches**
+> `https://domain/.env`, `/composer.json` and `/artisan` and fails loudly if any
+> of them is readable.
+
+### Code is wiped, data is kept
+
+Two opposite requirements that one rule cannot satisfy:
+
+- A file you **deleted locally** must not survive on the server. Overwriting
+  alone would leave a deleted controller alive and still routable.
+- A file **generated on the server** must not be deleted: `public/uploads`,
+  `storage/logs`, invoices, user images.
+
+| | behaviour |
+|---|---|
+| `app` `config` `routes` `database` `resources` `bootstrap` `vendor` | **deleted and reinstalled** |
+| `storage` | never packaged, never deleted |
+| `public` | package extracted over it; **not deleted** |
+| `.env` `.htaccess` `.well-known` `cgi-bin` `.user.ini` | untouched |
+
+Stale files under `public/` are handled by a **manifest**: every deploy records
+the list of public paths it shipped in the ownership marker. The next deploy
+deletes exactly those paths that *we* shipped last time and are not shipping
+now. A file we never shipped is not in the list, so it can never be deleted —
+that is set arithmetic, not a promise.
+
+### `.env`
+
+Your local `.env` is **never uploaded**, and no line of the server's file is
+removed. Only these are written:
+
+- `APP_DEBUG` is set to `false` when it is `true` (disable with `--keep-debug`)
+- `APP_URL` on first install, from the domain you picked
+- `DB_*` if you chose a database
+
+If the server has no `.env` at all it is created from `.env.example` and an
+`APP_KEY` is generated.
+
+### vendor and node packages
+
+`node_modules` **never travels**: the Vite/Mix build runs locally and only the
+`public/build` output ships.
+
+`vendor` has three modes, `auto` by default:
+
+| mode | behaviour |
+|---|---|
+| `auto` | ship only when `composer.lock` **changed**; otherwise the server's copy is kept (~2 MB updates) |
+| `always` | ship on every deploy |
+| `server` | do not ship; run `composer install --no-dev -o` on the server |
+
+`server` is not the default: composer is memory hungry and OOM under
+CloudLinux's default 1 GB LVE limit is a real outcome.
+
+### Migrations
+
+| | default |
+|---|---|
+| first install | `migrate:fresh --seed` |
+| update | `migrate --force` |
+
+Modes: `none`, `migrate`, `migrate-seed`, `fresh-seed` — via flags
+(`--migrate none`, `--no-migrate`) or `.cpanel-next.json`:
+
+```json
+{
+  "framework": "laravel",
+  "laravel": {
+    "migrate": "none",
+    "firstMigrate": "fresh-seed",
+    "vendor": "auto",
+    "forceDebugOff": true,
+    "optimize": true
+  }
+}
+```
+
+> `migrate:fresh` **drops every table**. It is printed in red on the review
+> screen and is never the default for an update.
+
+After install, in order: write permissions → `storage:link` → migration →
+`optimize:clear` → `config:cache` → `route:cache` → `view:cache`. The last two
+are non-fatal — `route:cache` fails on closure routes, and that should not stop
+a release.
+
+### Worth knowing
+
+- If the document root is not empty (a live WordPress, a plain HTML site) you
+  must **type the folder name** to confirm, and a backup is taken first.
+- `composer.lock` is **required**. Without it the vendor decision cannot be made
+  and server versions can drift from local — on the Next.js side that exact
+  drift produced a crash inside the framework.
+- The domain's PHP version is read from cPanel (`LangPHP`) and artisan runs with
+  it, so Laravel 11 finds PHP 8.2+ even when the account's default CLI is 7.4.
+
+---
+
+## Databases
+
+Deploying an application without a database is half a job. In cPanel, wiring
+one up takes four screens — *Create Database*, *Create User*, *Add User To
+Database*, the privilege checkboxes — and then you assemble the connection
+string by hand.
+
+```bash
+deploymanager db create shop --app-root shopnext --env-local
+```
+
+That single command creates the database, creates a user, grants it full
+privileges on that database, generates a password, and writes
+
+```
+DATABASE_URL=mysql://shop_user:…@127.0.0.1:3306/user_shop
+```
+
+into `.env` on the server **and** `.env.local` on your machine. The web
+interface does the same with one button, plus a **phpMyAdmin** link for the
+account or for a single database.
+
+```
+deploymanager db              list databases, sizes and users
+deploymanager db create <n>   database + user + privileges + DATABASE_URL
+deploymanager db drop <n>     drop a database (typed confirmation)
+deploymanager db users        MySQL users and what they can reach
+deploymanager db pma [n]      open phpMyAdmin
+```
+
+Notes worth knowing:
+
+- **The prefix is asked for, not assumed.** Most hosts force `<account>_` in
+  front of every database and user name, but a host can turn prefixing off, in
+  which case cPanel returns `prefix: null`. Treating that as "no answer" and
+  prepending `<account>_` anyway would create names the user cannot find in
+  cPanel. `Mysql::get_restrictions` is the authority.
+- **The password is shown once.** It is not stored — not by cPanel, not by
+  this tool. That is why the same screen offers to write it straight into
+  `.env`.
+- **Existing objects are left alone.** If the database already exists it is not
+  touched (it may hold data); if the user already exists its password is *not*
+  rotated, because another application may be using it.
+- **Dropping asks you to type the name.** A database has no backup and no undo,
+  so the rule is stricter than for folders, and it is enforced server-side.
+- **phpMyAdmin never sees your password through this tool.** A cPanel session
+  cannot be minted from an API token, so the button is a `goto_uri` deep link
+  into cPanel's own login. Already logged in? You land in phpMyAdmin directly.
+
+`.env`, `.env.local`, `.env.production` and `.env.production.local` are now
+preserved across deploys. They are never packaged, so anything written there
+would otherwise be destroyed by the next release.
+
+---
+
 ## Lifecycle hooks
 
 Declare commands in `.cpanel-next.json` to run on the server around dependency
@@ -167,10 +394,13 @@ installation:
 ```
 
 They run with the application's Node virtualenv first on `PATH`, so `npx` and
-`node` resolve to the right versions.
+`node` resolve to the right versions — at **all three** stages. A command may
+be given as a bare string instead of an array; anything else is reported and
+ignored rather than silently iterated character by character.
 
 > Hooks need a shell, which means they work on CloudLinux. On stock cPanel there
-> is no shell path, so hooks are skipped.
+> is no shell path, so hooks are skipped — and the deploy log says so, with the
+> number of commands that did not run.
 
 ---
 
@@ -199,7 +429,7 @@ and a live site is gone. Against that:
 ## Requirements and limits
 
 - Node.js 18.17+ locally
-- Next.js App Router or Pages Router
+- Next.js App Router or Pages Router · Laravel 9+ (`artisan` + `composer.lock`)
 - The build always runs **locally**. CloudLinux caps process memory at 1 GB by
   default and CloudLinux's own documentation notes that `npm build` hits OOM
   there.
@@ -212,7 +442,6 @@ Not supported yet:
   and Passenger fails with `http.Server.listen() was called more than once`
   (13.5.6+ is fine)
 - Sub-path mounting (`basePath` is baked in at build time)
-- Laravel
 
 ### Build and runtime must be the same version
 

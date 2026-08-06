@@ -78,6 +78,78 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12p
 .muted{color:var(--dim)}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 progress{width:100%;height:6px}
+
+/* ---------------------------------------------------------------------------
+ * Rehberlik katmanı.
+ *
+ * Arayüz çalışıyordu ama bir cPanel/Node bilgisi VARSAYIYORDU: ekranda altı
+ * sekme, jargonlu sütun başlıkları ve tek satır açıklama yoktu. Aşağıdaki
+ * sınıflar o boşluğu dolduruyor — her bölümün bir alt başlığı, her boş
+ * listenin bir "şimdi ne yapmalıyım" kartı, her teknik terimin bir cümlesi.
+ * ------------------------------------------------------------------------ */
+
+/* Bölüm başlığı: büyük başlık + tek satır açıklama */
+.sec{margin:0 0 14px}
+.sec h2{margin:0 0 3px;font-size:16px;letter-spacing:-.2px}
+.sec p{margin:0;color:var(--dim);font-size:13px}
+
+/* Alan altı yardım metni — etiketin altında, girdinin üstünde */
+.help{color:var(--dim);font-size:12px;margin:4px 0 0;line-height:1.45}
+
+/* Hızlı işlem kutuları */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+  padding:13px 14px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--panel2);cursor:pointer;text-decoration:none;color:inherit;width:100%}
+.tile:hover{border-color:var(--accent)}
+.tile b{font-size:13px;font-weight:600}
+.tile span{font-size:11.5px;color:var(--dim);line-height:1.35}
+.tile .ico{font-size:17px;line-height:1;margin-bottom:3px}
+
+/* Uygulama kartı — yoğun tablo yerine */
+.app{border:1px solid var(--line);border-radius:var(--radius);padding:14px 15px;margin-bottom:10px;
+  background:var(--panel2)}
+.app .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.app .name{font-weight:600;font-size:14px}
+.app .meta{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 12px;font-size:12px;color:var(--dim)}
+.app .meta b{font-weight:500;color:var(--fg);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* Durum noktası */
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim);
+  margin-right:6px;vertical-align:middle}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(62,207,142,.18)}
+.dot.off{background:var(--warn);box-shadow:0 0 0 3px rgba(245,181,68,.18)}
+
+/* Boş durum — "liste boş" demek yetmiyor, ne yapılacağını da söylemeli */
+.empty{text-align:center;padding:30px 20px;border:1px dashed var(--line);border-radius:var(--radius)}
+.empty .ico{font-size:26px;opacity:.55}
+.empty h3{margin:10px 0 5px;font-size:14px}
+.empty p{margin:0 auto 15px;max-width:430px;color:var(--dim);font-size:13px}
+
+/* Sihirbaz adım şeridi */
+.steps{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:8px 13px;border:1px solid var(--line);
+  border-radius:999px;font-size:12.5px;color:var(--dim);background:var(--panel)}
+.step .n{display:grid;place-items:center;width:19px;height:19px;border-radius:50%;
+  background:var(--line);color:var(--fg);font-size:11px;font-weight:600}
+.step.on{border-color:var(--accent);color:var(--fg)}
+.step.on .n{background:var(--accent);color:#fff}
+.step.done{color:var(--ok);border-color:var(--ok)}
+.step.done .n{background:var(--ok);color:#fff}
+
+/* Numaralı anlatım (karşılama ekranı) */
+.howto{counter-reset:h;margin:0;padding:0;list-style:none}
+.howto li{counter-increment:h;position:relative;padding:0 0 14px 34px;font-size:13px}
+.howto li::before{content:counter(h);position:absolute;left:0;top:0;width:22px;height:22px;
+  display:grid;place-items:center;border-radius:50%;background:var(--panel2);
+  border:1px solid var(--line);font-size:11px;font-weight:600}
+.howto li b{display:block;margin-bottom:2px;font-size:13.5px}
+.howto li span{color:var(--dim)}
+
+/* Üst araç çubuğu — cPanel'in kendi ekranlarına bağlantılar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.toolbar a{text-decoration:none}
+.wide{max-width:720px}
 </style>
 </head>
 <body>
@@ -127,7 +199,94 @@ const S = {
     whichProject:'Hangi proje yayınlansın?',linkedProject:'Bağlı proje',selectedProject:'Üstte seçili proje',
     projectMismatch:'Seçtiğiniz proje bu uygulamanın bağlı olduğu projeden farklı. Hangisini yayınlayacağınızı seçin.',
     deployThis:'Bunu yayınla',
-    domainHasApp:'Bu domainde zaten "{name}" uygulaması var (~/{path}). Yeni klasör yazarsanız paket oraya gider ve site DEĞİŞMEZ.'},
+    domainHasApp:'Bu domainde zaten "{name}" uygulaması var (~/{path}). Yeni klasör yazarsanız paket oraya gider ve site DEĞİŞMEZ.',
+    database:'Veritabanı',mysqlServer:'MySQL sunucusu',prefixLabel:'Ad öneki',noPrefix:'yok',
+    openPma:'phpMyAdmin’i aç',pmaNote:'phpMyAdmin cPanel girişi ister; şifreniz bu araçtan geçmez.',
+    newDb:'Yeni veritabanı',newDbNote:'Veritabanı, kullanıcı ve tam yetki tek adımda oluşturulur.',
+    dbNameLabel:'Ad',willBe:'Oluşacak ad',create:'Oluştur',dbs:'Veritabanları',
+    dbUsers:'MySQL kullanıcıları',noDbs:'Bu hesapta veritabanı yok.',noDbUsers:'MySQL kullanıcısı yok.',
+    dropWarn:'{name} SİLİNECEK. Geri alınamaz, yedeği yoktur. Onaylamak için adını yazın.',
+    ready:'Hazır',passOnce:'Bu şifre bir daha gösterilmeyecek — şimdi kaydedin.',
+    copy:'Kopyala',copied:'Kopyalandı',writeEnv:'.env dosyasına yaz',writeLocalEnv:'Yerel .env.local’e yaz',
+    pickApp:'Uygulama seçin',envWritten:'Yazıldı: {file}',newPassword:'Şifre yenile',
+    envTitle:'Ortam değişkenleri',envNote:'Sunucudaki dosya. Pakete girmez, deploy’da korunur.',
+    reveal:'Göster',hide:'Gizle',key:'Anahtar',value:'Değer',addVar:'Ekle',
+    noEnv:'Bu uygulamada bu dosya yok — ilk değeri yazınca oluşturulur.',
+    dbExistedNote:'Veritabanı zaten vardı, içine dokunulmadı.',
+    userExistedNote:'Kullanıcı zaten vardı; şifresi DEĞİŞTİRİLMEDİ, yalnızca yetki verildi.',
+    dbPassword:'Şifre',dbUser:'Kullanıcı',dbNameHint:'Yalnızca harf, rakam ve alt çizgi.',
+
+    /* --- rehberlik --- */
+    welcomeTitle:'cpanel-next’e hoş geldiniz',
+    welcomeLead:'Next.js projelerinizi cPanel paylaşımlı hostinge yayınlar. WHM, root ya da SSH gerekmez — elinizde yalnızca cPanel girişiniz olması yeterli.',
+    how1:'cPanel hesabınızı bağlayın',
+    how1d:'Sunucu adresi, kullanıcı adı ve cPanel şifreniz. Araç sizin için bir API token’ı üretir; şifreniz hiçbir yere kaydedilmez.',
+    how2:'Projenizi seçin',
+    how2d:'Bilgisayarınızdaki klasörü seçersiniz. Araç framework’ü tanır, projeyi derler ve paketler.',
+    how3:'Yayınlayın',
+    how3d:'Paket sunucuya gider, bağımlılıklar kurulur, uygulama başlatılır. Site yenilenirken ziyaretçiler bakım sayfası görür.',
+    startNow:'Başlayalım',
+    tabOverviewSub:'Hesabınızdaki siteler ve uygulamalar',
+    tabDeploySub:'Bir projeyi sunucuya gönderin',
+    tabDatabaseSub:'MySQL veritabanları ve phpMyAdmin',
+    tabBackupsSub:'Önceki sürüme geri dönün',
+    tabLogsSub:'Sunucudaki son çalıştırmalar',
+    tabSettingsSub:'Hesaplar, dil ve varsayılan arayüz',
+    openCpanel:'cPanel',openCpanelSub:'Hesabınızın kontrol paneli',
+    openFiles:'Dosya Yöneticisi',openFilesSub:'Sunucudaki dosyaları gözatın',
+    openPmaSub:'Veritabanlarını görsel olarak yönetin',
+    appFiles:'Dosyalar',
+    newDeploy:'Yeni yayın',newDeploySub:'Bir projeyi ilk kez gönderin',
+    externalNote:'Bu bağlantılar cPanel’in kendi ekranlarını açar. Zaten girişliyseniz doğrudan gidersiniz, değilse cPanel size şifrenizi sorar — şifreniz bu araçtan geçmez.',
+    noAppsTitle:'Henüz yayınlanmış uygulama yok',
+    noAppsBody:'Bir Next.js projesi seçip yayınladığınızda burada görünecek: durumu, adresi ve tek tıkla güncelleme düğmesiyle.',
+    noDomainsTitle:'Bu hesapta domain yok',
+    noDomainsBody:'Önce cPanel’den bir domain ya da subdomain ekleyin; sonra buraya dönün.',
+    domainsSub:'Hesabınızdaki adresler ve her birinin hangi klasörü yayınladığı.',
+    appsSub:'Sunucuda çalışan Node.js uygulamaları.',
+    whatIsRegime:'Sunucunun Node.js uygulamalarını hangi altyapıyla yönettiği. Araç bunu kendisi tespit eder.',
+    stepProject:'Proje',stepTarget:'Hedef',stepReview:'Kontrol',
+    stepProjectSub:'Bilgisayarınızda hangi klasörü yayınlayacağız?',
+    stepTargetSub:'Hangi adreste ve sunucuda hangi klasörde çalışacak?',
+    stepReviewSub:'Yapılacakları okuyun; onaylamadan hiçbir şey değişmez.',
+    back:'Geri',next:'Devam',
+    projectHelp:'Bir Next.js projesinin kök klasörü — içinde package.json bulunan dizin.',
+    domainHelp:'Uygulamanın açılacağı adres. Yeni bir subdomain de oluşturabilirsiniz.',
+    appRootHelp:'Sunucuda ev dizininizin altındaki klasör. Kaynak kodunuz buraya açılır ve web’e kapalıdır.',
+    noBuildHelp:'İşaretlerseniz "npm run build" atlanır ve elinizdeki .next çıktısı gönderilir.',
+    adoptHelp:'Bu araçla oluşturulmamış bir klasörü hedef alıyorsanız işaretleyin.',
+    reviewIntro:'Aşağıdakiler yapılacak. Onaylamadan sunucuda hiçbir şey değişmiyor.',
+    preserved:'Korunacak dosyalar',
+    dangerTitle:'Bu klasörün içeriği silinecek',
+    folderNotEmpty:'Bu klasör boş değil.',
+    firstDeployHint:'Bu klasör sunucuda yok; ilk kez oluşturulacak.',
+    masterNew:'Ana şifre belirleyin',masterNewHelp:'cPanel token’ınız bu şifreyle şifrelenip diskte saklanacak. Uygulamayı her açtığınızda bu şifre sorulur. Karmaşıklık zorunluluğu yok — ama unutursanız kayıtlı hesaplar açılamaz.',tokenScreen:'API token’ları',tokenScreenSub:'Bu aracın token’ını cPanel’den silin',
+    lvTitle:'Laravel ayarları',lvFolder:'Uygulama klasörü',lvAuto:'domainin belge kökü — seçilmiyor',
+    lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
+    lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
+    mgNone:'Çalıştırma',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
+    mgFreshSeed:'migrate:fresh --seed — TÜM TABLOLAR SİLİNİR',
+    vnAuto:'auto — composer.lock değiştiyse gönder',vnAlways:'always — her zaman gönder',
+    vnServer:'server — composer sunucuda çalışsın',
+    lvDb:'Veritabanı',lvDbSkip:'Dokunma (sunucudaki .env kalsın)',lvDbNew:'Yeni veritabanı oluştur',
+    lvDbExisting:'Mevcut veritabanını kullan',lvDbUser:'Kullanıcı',lvDbUserNew:'Yeni kullanıcı oluştur',
+    lvDbUserExisting:'Mevcut kullanıcı',lvDbPassword:'Şifresi (cPanel göstermiyor)',
+    lvFirst:'İLK KURULUM',lvUpdate:'Güncelleme',
+    lvNotEmpty:'Bu klasörde {count} girdi var. Kod dizinleri (app, config, routes, database, vendor…) silinip yeniden kurulacak.',
+    lvKept:'Korunacak: .env · storage · public/ altındaki kendi dosyalarınız · .well-known · .htaccess',
+    lvFreshWarn:'migrate:fresh bütün tabloları SİLER. Veri varsa gider.',
+    lvExposed:'DİKKAT: kaynak dosyalar internetten okunabiliyor — {list}',
+    lvEnvNote:'Yerel .env dosyanız GÖNDERİLMEZ. Sunucudaki .env korunur; yalnızca seçtiğiniz veritabanı bilgileri ve APP_DEBUG yazılır.',
+    edit:'Düzenle',save:'Kaydet',testConn:'Bağlantıyı test et',
+    connOk:'Bağlantı çalışıyor — {user}',connBad:'Token geçersiz',
+    editAccount:'Hesabı düzenle',
+    editAccountHint:'Sunucu, port ya da kullanıcı adı değiştiyse burada güncelleyin. Şifre alanını doldurursanız yeni bir API token’ı üretilir.',
+    newCpanelPassword:'cPanel şifresi (yalnızca token’ı yenilemek için)',
+    newCpanelPasswordHint:'Boş bırakırsanız mevcut token korunur. cPanel şifresi değişmesi token’ı bozmaz; token’ı cPanel’den sildiyseniz burayı doldurun.',
+    storePassword:'cPanel şifremi kasada sakla (otomatik giriş)',
+    storePasswordHint:'phpMyAdmin ve Dosya Yöneticisi tek tıkla, şifre sormadan açılır. Şifre ana şifrenizle AES-256-GCM ile şifrelenip 0600 izinli dosyada saklanır. Kapatırsanız bu ekranlar cPanel giriş sayfasına yönlendirir.',
+    autoLoginOn:'otomatik giriş',
+    autoLoginNote:'Bu bağlantılar cPanel’e sizin adınıza giriş yapar ve doğrudan hedefe götürür. Şifre yalnızca tarayıcınızdan cPanel’e gider; başka hiçbir yere gönderilmez.'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -167,7 +326,94 @@ const S = {
     whichProject:'Which project should be deployed?',linkedProject:'Linked project',selectedProject:'Project selected above',
     projectMismatch:'The project you selected differs from the one this application is linked to. Choose which to deploy.',
     deployThis:'Deploy this',
-    domainHasApp:'This domain already has the application "{name}" (~/{path}). If you enter a new folder the package goes there and the site will NOT change.'}
+    domainHasApp:'This domain already has the application "{name}" (~/{path}). If you enter a new folder the package goes there and the site will NOT change.',
+    database:'Database',mysqlServer:'MySQL server',prefixLabel:'Name prefix',noPrefix:'none',
+    openPma:'Open phpMyAdmin',pmaNote:'phpMyAdmin asks for your cPanel login; your password never passes through this tool.',
+    newDb:'New database',newDbNote:'Database, user and full privileges in one step.',
+    dbNameLabel:'Name',willBe:'Will be created as',create:'Create',dbs:'Databases',
+    dbUsers:'MySQL users',noDbs:'No databases on this account.',noDbUsers:'No MySQL users.',
+    dropWarn:'{name} will be DROPPED. This cannot be undone and has no backup. Type its name to confirm.',
+    ready:'Ready',passOnce:'This password will not be shown again — save it now.',
+    copy:'Copy',copied:'Copied',writeEnv:'Write to .env',writeLocalEnv:'Write to local .env.local',
+    pickApp:'Pick an application',envWritten:'Written: {file}',newPassword:'New password',
+    envTitle:'Environment variables',envNote:'The file on the server. Never packaged, preserved across deploys.',
+    reveal:'Show',hide:'Hide',key:'Key',value:'Value',addVar:'Add',
+    noEnv:'This application has no such file — it is created when you write the first value.',
+    dbExistedNote:'The database already existed and its contents were left alone.',
+    userExistedNote:'The user already existed; its password was NOT changed, only privileges were granted.',
+    dbPassword:'Password',dbUser:'User',dbNameHint:'Letters, digits and underscores only.',
+
+    /* --- guidance --- */
+    welcomeTitle:'Welcome to cpanel-next',
+    welcomeLead:'It deploys your Next.js projects to cPanel shared hosting. No WHM, no root, no SSH — your cPanel login is all you need.',
+    how1:'Connect your cPanel account',
+    how1d:'Server address, username and your cPanel password. The tool creates an API token for itself; your password is never stored.',
+    how2:'Pick your project',
+    how2d:'Choose a folder on your computer. The tool detects the framework, builds and packages it.',
+    how3:'Deploy',
+    how3d:'The package goes to the server, dependencies are installed, the app starts. Visitors see a maintenance page while it restarts.',
+    startNow:'Get started',
+    tabOverviewSub:'Sites and applications on your account',
+    tabDeploySub:'Send a project to the server',
+    tabDatabaseSub:'MySQL databases and phpMyAdmin',
+    tabBackupsSub:'Roll back to a previous release',
+    tabLogsSub:'Recent runs on the server',
+    tabSettingsSub:'Accounts, language and default interface',
+    openCpanel:'cPanel',openCpanelSub:'Your account control panel',
+    openFiles:'File Manager',openFilesSub:'Browse files on the server',
+    openPmaSub:'Manage databases visually',
+    appFiles:'Files',
+    newDeploy:'New deploy',newDeploySub:'Send a project for the first time',
+    externalNote:'These links open cPanel’s own screens. If you are already logged in you go straight there; otherwise cPanel asks for your password — it never passes through this tool.',
+    noAppsTitle:'No applications deployed yet',
+    noAppsBody:'Once you deploy a Next.js project it appears here — with its status, address and a one-click update button.',
+    noDomainsTitle:'No domains on this account',
+    noDomainsBody:'Add a domain or subdomain in cPanel first, then come back here.',
+    domainsSub:'The addresses on your account and which folder each one serves.',
+    appsSub:'Node.js applications running on the server.',
+    whatIsRegime:'Which mechanism the server uses to manage Node.js applications. The tool detects this itself.',
+    stepProject:'Project',stepTarget:'Target',stepReview:'Review',
+    stepProjectSub:'Which folder on your computer are we deploying?',
+    stepTargetSub:'At which address, and in which folder on the server?',
+    stepReviewSub:'Read what will happen; nothing changes until you confirm.',
+    back:'Back',next:'Continue',
+    projectHelp:'The root folder of a Next.js project — the directory containing package.json.',
+    domainHelp:'The address the application will be served at. You can also create a new subdomain.',
+    appRootHelp:'A folder under your home directory on the server. Your source is extracted there and is not web-accessible.',
+    noBuildHelp:'Tick this to skip "npm run build" and ship the .next output you already have.',
+    adoptHelp:'Tick this if you are targeting a folder this tool did not create.',
+    reviewIntro:'This is what will happen. Nothing changes on the server until you confirm.',
+    preserved:'Files that will be kept',
+    dangerTitle:'The contents of this folder will be deleted',
+    folderNotEmpty:'This folder is not empty.',
+    firstDeployHint:'This folder does not exist on the server; it will be created.',
+    masterNew:'Choose a master password',masterNewHelp:'Your cPanel token is encrypted with this and stored on disk. You will be asked for it each time you open the app. No complexity rules — but if you forget it, the saved accounts cannot be opened.',tokenScreen:'API tokens',tokenScreenSub:'Remove this tool’s token from cPanel',
+    lvTitle:'Laravel settings',lvFolder:'Application folder',lvAuto:'the domain’s document root — not selectable',
+    lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
+    lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
+    mgNone:'Do not run',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
+    mgFreshSeed:'migrate:fresh --seed — DROPS EVERY TABLE',
+    vnAuto:'auto — ship when composer.lock changes',vnAlways:'always — ship every time',
+    vnServer:'server — run composer on the server',
+    lvDb:'Database',lvDbSkip:'Leave it alone (keep the .env on the server)',lvDbNew:'Create a new database',
+    lvDbExisting:'Use an existing database',lvDbUser:'User',lvDbUserNew:'Create a new user',
+    lvDbUserExisting:'Existing user',lvDbPassword:'Its password (cPanel does not show it)',
+    lvFirst:'FIRST INSTALL',lvUpdate:'Update',
+    lvNotEmpty:'This folder has {count} entries. Code directories (app, config, routes, database, vendor…) will be deleted and reinstalled.',
+    lvKept:'Kept: .env · storage · your own files under public/ · .well-known · .htaccess',
+    lvFreshWarn:'migrate:fresh DROPS every table. Existing data is lost.',
+    lvExposed:'WARNING: source files are readable from the internet — {list}',
+    lvEnvNote:'Your local .env is NOT uploaded. The .env on the server is kept; only the database values you pick and APP_DEBUG are written.',
+    edit:'Edit',save:'Save',testConn:'Test connection',
+    connOk:'Connection works — {user}',connBad:'Token is invalid',
+    editAccount:'Edit account',
+    editAccountHint:'Update the server, port or username here if they changed. Fill in the password field to create a fresh API token.',
+    newCpanelPassword:'cPanel password (only to renew the token)',
+    newCpanelPasswordHint:'Leave empty to keep the current token. Changing your cPanel password does not break the token; fill this in if you deleted the token in cPanel.',
+    storePassword:'Store my cPanel password in the vault (auto login)',
+    storePasswordHint:'phpMyAdmin and File Manager then open in one click without asking for a password. It is encrypted with your master password (AES-256-GCM) in a 0600 file. With this off, those screens redirect to the cPanel login.',
+    autoLoginOn:'auto login',
+    autoLoginNote:'These links sign in to cPanel for you and land on the target. Your password only travels from your browser to cPanel; it is sent nowhere else.'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -219,6 +465,29 @@ function showError(container, err) {
     err.hint ? el('div', { class: 'muted' }, err.hint) : null));
 }
 
+/** Seçili hesabın şifresi kasada var mı — otomatik giriş buna bağlı. */
+function autoLogin() {
+  const p = ST.profiles.find((x) => x.name === ST.profile);
+  return Boolean(p && p.hasPassword);
+}
+
+/**
+ * cPanel ekranına giden adres.
+ *
+ * Şifre kasadaysa yerel `/sso` sayfasından geçiyor: o sayfa cPanel'in giriş
+ * formuna POST edip oturumu AÇIYOR ve hedefe düşüyor. Şifre yoksa doğrudan
+ * cPanel giriş sayfasına `goto_uri` ile gidiliyor — kullanıcı şifresini
+ * cPanel'e yazıyor ve yine doğru yere varıyor.
+ *
+ * `fallback` sunucunun ürettiği şifresiz adres; ikisi de aynı hedefe çıkıyor.
+ */
+function cpanelUrl(target, params, fallback) {
+  if (!autoLogin()) return fallback || '#';
+  const q = new URLSearchParams({ t: TOKEN, profile: ST.profile, target });
+  for (const [k, v] of Object.entries(params || {})) if (v) q.set(k, v);
+  return '/sso?' + q.toString();
+}
+
 /* ---------------------------------------------------------------- render */
 async function boot() {
   const st = await api('status');
@@ -232,6 +501,14 @@ async function boot() {
     ST.deploy = { path: st.initialProject.path };
     ST.tab = 'deploy';
   }
+  /*
+   * Hiç hesap yoksa açılacak bir kasa da yok.
+   *
+   * Kasa her zaman kilitli başladığı için burada yalnızca `locked`'a bakmak,
+   * yeni kullanıcıyı "Kasayı aç" ekranına hapsediyordu: girdiği her şifre
+   * `no profiles` hatası veriyordu ve ileri gitmenin yolu yoktu.
+   */
+  if (!st.hasProfiles) return renderWelcome();
   ST.locked ? renderUnlock() : renderMain();
 }
 
@@ -266,9 +543,38 @@ function renderUnlock(errMsg) {
   setTimeout(() => input.focus(), 30);
 }
 
+/**
+ * Karşılama ekranı — hiç hesap bağlanmamışken.
+ *
+ * Eskiden bu durumda kullanıcı doğrudan AYARLAR sekmesine düşüyordu: altı
+ * sekme, bir form ve hiçbir açıklama. Aracın ne yaptığını, şifresinin ne
+ * olacağını ve sırada ne olduğunu bilmeyen biri için anlaşılır değildi.
+ */
+function renderWelcome() {
+  clear(app);
+  const main = el('main', { class: 'wide' });
+
+  main.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', { style: 'font-size:20px' }, s('welcomeTitle')),
+      el('p', {}, s('welcomeLead'))),
+    el('ol', { class: 'howto', style: 'margin-top:18px' },
+      el('li', {}, el('b', {}, s('how1')), el('span', {}, s('how1d'))),
+      el('li', {}, el('b', {}, s('how2')), el('span', {}, s('how2d'))),
+      el('li', {}, el('b', {}, s('how3')), el('span', {}, s('how3d'))))));
+
+  // Hesap ekleme formunu ayarlardan taşımıyoruz, oraya YÖNLENDİRİYORUZ —
+  // tek bir form, tek bir doğru yer.
+  const box = el('div', {});
+  main.append(box);
+  app.append(main);
+  // İlk hesapta ana şifre de burada belirleniyor: kasa henüz yok.
+  renderAddProfile(box, { autofocus: true, askMaster: true, onDone: () => boot() });
+}
+
 function renderMain() {
   clear(app);
-  if (!ST.profiles.length) ST.tab = 'settings';
+  if (!ST.profiles.length) return renderWelcome();
   const sel = el('select', { style: 'width:auto;min-width:230px',
     onchange: (e) => { ST.profile = e.target.value; ST.overview = null; renderMain(); } },
     ...ST.profiles.map((p) => el('option', { value: p.name, selected: p.name === ST.profile },
@@ -305,20 +611,37 @@ function renderMain() {
     } }, s('backToTerminal'))));
 
   const main = el('main', {});
+  const TABS = ['overview', 'deploy', 'database', 'backups', 'logs', 'settings'];
   const tabs = el('div', { class: 'tabs' },
-    ...['overview', 'deploy', 'backups', 'logs', 'settings'].map((k) =>
-      el('button', { class: ST.tab === k ? 'on' : '', onclick: () => { ST.tab = k; renderMain(); } }, s(k))));
+    ...TABS.map((k) =>
+      el('button', {
+        class: ST.tab === k ? 'on' : '',
+        // Sekme adı tek başına ne olduğunu anlatmıyor; başlık ipucu ve altındaki
+        // satır bunu kapatıyor.
+        title: s('tab' + k[0].toUpperCase() + k.slice(1) + 'Sub'),
+        onclick: () => { ST.tab = k; renderMain(); },
+      }, s(k))));
   main.append(tabs);
+  main.append(el('p', { class: 'help', style: 'margin:-8px 0 18px 4px' },
+    s('tab' + ST.tab[0].toUpperCase() + ST.tab.slice(1) + 'Sub')));
 
   const body = el('div', {});
   main.append(body);
   app.append(main);
 
-  ({ overview: viewOverview, deploy: viewDeploy, backups: viewBackups, logs: viewLogs,
-     settings: viewSettings })[ST.tab](body);
+  ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, backups: viewBackups,
+     logs: viewLogs, settings: viewSettings })[ST.tab](body);
 }
 
 /* -------------------------------------------------------------- overview */
+/**
+ * Panel.
+ *
+ * Eskiden burası üç yoğun tabloydu: "Rejim", "Belge kökü", "Sahip: dış" gibi
+ * başlıklar bir cPanel/Node bilgisi varsayıyordu ve hiçbirinin yanında bir
+ * açıklama yoktu. Şimdi önce NE YAPABİLECEĞİN (hızlı işlemler), sonra
+ * SİTELERİN kart olarak, en sonda ayrıntı olarak domain tablosu geliyor.
+ */
 async function viewOverview(root, refresh) {
   root.append(el('div', { class: 'card' }, s('working')));
   try {
@@ -327,23 +650,66 @@ async function viewOverview(root, refresh) {
   const o = ST.overview;
   clear(root);
 
-  root.append(el('div', { class: 'card' },
-    el('div', { class: 'row' },
-      el('h2', { style: 'flex:1' }, o.profile.user + '@' + o.profile.host),
-      el('button', { onclick: () => { const r = root; clear(r); viewOverview(r, true); } }, s('refresh'))),
-    el('dl', { class: 'kv' },
-      el('dt', {}, s('regime')), el('dd', {}, o.regimeLabel),
-      el('dt', {}, s('quota')), el('dd', {}, o.apps.length + ' / ' + (o.maxApps ?? '∞')))));
+  const reload = () => { const r = root; clear(r); viewOverview(r, true); };
+  const jobOut = el('div', {});
 
-  const subOut = el('div', {});
+  /* --- hızlı işlemler: cPanel'in kendi ekranları da dahil --- */
+  const link = (href, ico, title, sub) =>
+    el('a', { class: 'tile', href, target: '_blank', rel: 'noreferrer' },
+      el('span', { class: 'ico' }, ico), el('b', {}, title),
+      el('span', {}, sub + (autoLogin() ? ' · ⚡' : '')));
+
+  const L = o.links ?? {};
   root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, o.profile.user + '@' + o.profile.host),
+      el('p', {}, o.regimeLabel + ' · ' + s('quota') + ' ' + o.apps.length + '/' + (o.maxApps ?? '∞'))),
+    el('div', { class: 'tiles' },
+      el('button', { class: 'tile', onclick: () => { ST.deploy = {}; ST.tab = 'deploy'; renderMain(); } },
+        el('span', { class: 'ico' }, '🚀'), el('b', {}, s('newDeploy')), el('span', {}, s('newDeploySub'))),
+      link(cpanelUrl('phpmyadmin', {}, L.phpMyAdmin), '🗄️', 'phpMyAdmin', s('openPmaSub')),
+      link(cpanelUrl('files', {}, L.files), '📂', s('openFiles'), s('openFilesSub')),
+      link(cpanelUrl('cpanel', {}, L.cpanel), '🎛️', s('openCpanel'), s('openCpanelSub'))),
+    el('p', { class: 'help', style: 'margin-top:12px' },
+      autoLogin() ? s('autoLoginNote') : s('externalNote'))));
+
+  /* --- uygulamalar: tablo değil, kart --- */
+  const appsCard = el('div', { class: 'card' },
     el('div', { class: 'row' },
-      el('h2', { style: 'flex:1' }, s('domains')),
+      el('div', { class: 'sec', style: 'flex:1' },
+        el('h2', {}, s('apps')), el('p', {}, s('appsSub'))),
+      el('button', { onclick: reload }, s('refresh'))));
+
+  if (!o.apps.length) {
+    appsCard.append(el('div', { class: 'empty' },
+      el('div', { class: 'ico' }, '🚀'),
+      el('h3', {}, s('noAppsTitle')),
+      el('p', {}, s('noAppsBody')),
+      el('button', { class: 'primary', onclick: () => { ST.deploy = {}; ST.tab = 'deploy'; renderMain(); } },
+        s('newDeploy'))));
+  } else {
+    for (const a of o.apps) appsCard.append(appCard(a, jobOut, reload));
+  }
+  root.append(appsCard);
+
+  /* --- domainler: ayrıntı, en altta --- */
+  const subOut = el('div', {});
+  const domCard = el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('div', { class: 'sec', style: 'flex:1' },
+        el('h2', {}, s('domains')), el('p', {}, s('domainsSub'))),
       el('button', { onclick: () => askNewSubdomain(subOut, o, root) }, '+ ' + s('newSubdomain'))),
-    subOut,
-    el('table', {},
+    subOut);
+
+  if (!o.domains.length) {
+    domCard.append(el('div', { class: 'empty' },
+      el('div', { class: 'ico' }, '🌐'),
+      el('h3', {}, s('noDomainsTitle')),
+      el('p', {}, s('noDomainsBody'))));
+  } else {
+    domCard.append(el('table', {},
       el('thead', {}, el('tr', {}, el('th', {}, s('domain')), el('th', {}, s('type')),
-        el('th', {}, s('docroot')), el('th', {}, s('app')), el('th', {}))),
+        el('th', {}, s('docroot')), el('th', {}, s('app')))),
       el('tbody', {}, ...o.domains.map((d) => {
         const a = o.apps.find((x) => x.domain === d.domain);
         return el('tr', {},
@@ -351,60 +717,69 @@ async function viewOverview(root, refresh) {
           el('td', {}, el('span', { class: 'pill' }, d.typeLabel)),
           el('td', { class: 'mono muted' }, d.docroot || s('none')),
           el('td', { class: 'mono' }, a ? a.name : s('none')));
-      })))));
-
-  const jobOut = el('div', {});
-  root.append(el('div', { class: 'card' },
-    el('h2', {}, s('apps')),
-    o.apps.length === 0 ? el('p', { class: 'sub' }, s('noApps')) :
-    el('table', {},
-      el('thead', {}, el('tr', {}, el('th', {}, s('app')), el('th', {}, s('domain')),
-        el('th', {}, s('node')), el('th', {}, s('status')), el('th', {}, s('folder')),
-        el('th', {}, s('owner')), el('th', {}, s('actions')))),
-      el('tbody', {}, ...o.apps.map((a) => {
-        const on = /start|run/i.test(String(a.status ?? (a.enabled ? 'started' : 'stopped')));
-        // Bu işler CloudLinux'ta worker'dan geçiyor ve 5-60 sn sürebiliyor;
-        // kullanıcı ne olduğunu görmeli. Hepsi iş olarak koşup log akıtıyor.
-        const act = (action) => async (e) => {
-          e.target.disabled = true;
-          try {
-            const r = await post('app-action', { profile: ST.profile, appRoot: a.path, action });
-            renderJob(jobOut, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
-          } catch (err) { e.target.disabled = false; showError(jobOut, err); }
-        };
-        return el('tr', {},
-          el('td', { class: 'mono' }, a.name),
-          el('td', {}, a.domain || s('none')),
-          el('td', {}, a.nodeVersion || s('none')),
-          el('td', {}, el('span', { class: 'pill ' + (on ? 'ok' : 'warn') }, on ? s('running') : s('stopped'))),
-          el('td', { class: 'mono muted' }, '~/' + a.path),
-          el('td', {}, el('span', { class: 'pill ' + (a.owned ? 'ok' : '') }, a.owned ? s('mine') : s('external'))),
-          el('td', {}, el('div', { class: 'row' },
-            el('button', { onclick: act(on ? 'stop' : 'start') }, on ? s('stop') : s('start')),
-            el('button', { onclick: act('restart') }, s('restart')),
-            el('button', {
-              class: a.ownerProject ? 'primary' : '',
-              title: a.ownerProject || s('noLink'),
-              onclick: () => startUpdate(jobOut, a, root),
-            }, s('update') + (a.ownerProject ? ' · ' + a.ownerProject.split('/').filter(Boolean).pop() : '')),
-            el('button', {
-              title: s('changeProject'),
-              onclick: () => {
-                // Hedef sabit (domain + app-root), yalnızca KAYNAK klasör
-                // yeniden seçiliyor. Uygulamayı başka bir yerel projeye bağlamak
-                // ya da makine değiştirdikten sonra yeniden eşlemek için.
-                ST.deploy = { path: null, domain: a.domain, appRoot: a.path, relink: a.name };
-                ST.tab = 'deploy';
-                renderMain();
-              },
-            }, '📁'),
-            el('button', { class: 'danger', onclick: () => askDelete(jobOut, a) }, s('del')))));
-      })))));
+      }))));
+  }
+  root.append(domCard);
 
   // ⚠ Bu satır eksikti: kap oluşturuluyor, düğmeler ona yazıyor ama DOM'a hiç
   // eklenmiyordu. Sonuç: düğmeye basınca devre dışı kalıyor ve HİÇBİR ŞEY
   // görünmüyordu.
   root.append(jobOut);
+}
+
+/** Tek bir uygulamanın kartı: durumu, adresi ve yapılabilecek her şey. */
+function appCard(a, jobOut, reload) {
+  const on = /start|run/i.test(String(a.status ?? (a.enabled ? 'started' : 'stopped')));
+
+  // Bu işler CloudLinux'ta worker'dan geçiyor ve 5-60 sn sürebiliyor;
+  // kullanıcı ne olduğunu görmeli. Hepsi iş olarak koşup log akıtıyor.
+  const act = (action) => async (e) => {
+    e.target.disabled = true;
+    try {
+      const r = await post('app-action', { profile: ST.profile, appRoot: a.path, action });
+      renderJob(jobOut, r.jobId, reload);
+    } catch (err) { e.target.disabled = false; showError(jobOut, err); }
+  };
+
+  return el('div', { class: 'app' },
+    el('div', { class: 'top' },
+      el('span', { class: 'name' }, el('span', { class: 'dot ' + (on ? 'on' : 'off') }), a.name),
+      a.domain
+        ? el('a', { href: 'https://' + a.domain, target: '_blank', rel: 'noreferrer' }, a.domain)
+        : el('span', { class: 'muted' }, s('none')),
+      el('span', { class: 'pill ' + (on ? 'ok' : 'warn') }, on ? s('running') : s('stopped')),
+      a.owned ? el('span', { class: 'pill ok' }, s('mine')) : el('span', { class: 'pill' }, s('external'))),
+
+    el('div', { class: 'meta' },
+      el('span', {}, s('folder') + ': ', el('b', {}, '~/' + a.path)),
+      a.nodeVersion ? el('span', {}, 'Node: ', el('b', {}, a.nodeVersion)) : null,
+      a.ownerProject ? el('span', {}, s('linkedTo') + ': ', el('b', {}, a.ownerProject)) : null),
+
+    el('div', { class: 'row' },
+      el('button', {
+        class: a.ownerProject ? 'primary' : '',
+        title: a.ownerProject || s('noLink'),
+        onclick: () => startUpdate(jobOut, a, reload),
+      }, '⬆ ' + s('update')),
+      el('button', { onclick: act('restart') }, '↻ ' + s('restart')),
+      el('button', { onclick: act(on ? 'stop' : 'start') }, on ? '⏹ ' + s('stop') : '▶ ' + s('start')),
+      el('a', {
+        href: cpanelUrl('files', { dir: a.path }, a.filesUrl),
+        target: '_blank', rel: 'noreferrer',
+      }, el('button', {}, '📂 ' + s('appFiles'))),
+      el('button', {
+        title: s('changeProject'),
+        onclick: () => {
+          // Hedef sabit (domain + app-root), yalnızca KAYNAK klasör yeniden
+          // seçiliyor. Uygulamayı başka bir yerel projeye bağlamak ya da makine
+          // değiştirdikten sonra yeniden eşlemek için.
+          ST.deploy = { path: null, domain: a.domain, appRoot: a.path, relink: a.name };
+          ST.tab = 'deploy';
+          renderMain();
+        },
+      }, s('changeProject')),
+      el('span', { class: 'spacer', style: 'flex:1' }),
+      el('button', { class: 'danger', onclick: () => askDelete(jobOut, a, reload) }, s('del'))));
 }
 
 /**
@@ -418,7 +793,7 @@ async function viewOverview(root, refresh) {
  * makul bir niyet olabilir ve yanlış olanı seçmek uygulamanın üstüne başka bir
  * projeyi yazmak demek. Kullanıcı karar veriyor.
  */
-function startUpdate(out, app, root) {
+function startUpdate(out, app, reload) {
   const selected = ST.deploy.path || null;
   const linked = app.ownerProject || null;
 
@@ -426,7 +801,7 @@ function startUpdate(out, app, root) {
     clear(out);
     try {
       const r = await post('app-update', { profile: ST.profile, appRoot: app.path, projectPath });
-      renderJob(out, r.jobId, () => { const c = root; clear(c); viewOverview(c, true); });
+      renderJob(out, r.jobId, reload);
     } catch (err) { showError(out, err); }
   };
 
@@ -489,29 +864,83 @@ function askDeleteSubdomain(out, d, root) {
     el('label', {}, s('typeToConfirm')), input, go));
 }
 
+/**
+ * Uygulama kaldırma.
+ *
+ * ⚠ Bu fonksiyon HİÇ TANIMLANMAMIŞTI. Kart üzerindeki "Sil" düğmesi onu
+ * çağırıyordu, yani tıklayınca konsola ReferenceError düşüyor ve ekranda
+ * hiçbir şey olmuyordu — sessiz bir ölü düğme.
+ *
+ * Dosyaları silmek AYRI ve açık bir tercih: uygulama kaydını kaldırmak
+ * kaynak kodu silmek anlamına gelmemeli.
+ */
+function askDelete(out, app, reload) {
+  clear(out);
+  const input = el('input', { placeholder: app.path });
+  const files = el('input', { type: 'checkbox', style: 'width:auto' });
+  const go = el('button', { class: 'danger', style: 'margin-top:12px' }, s('deleteApp'));
+
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      const r = await post('app-delete', {
+        profile: ST.profile, appRoot: app.path,
+        confirm: input.value, deleteFiles: files.checked });
+      renderJob(out, r.jobId, () => { ST.overview = null; reload(); });
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg warn' }, s('deleteWarn').replace('{name}', app.name)),
+    el('label', {}, s('typeToConfirm')), input,
+    el('div', { class: 'row', style: 'margin-top:12px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px' },
+        files, ' ' + s('deleteFiles'))),
+    el('div', { class: 'row', style: 'margin-top:12px' },
+      go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+  setTimeout(() => input.focus(), 30);
+}
+
 /* ---------------------------------------------------------------- deploy */
+/**
+ * Adım şeridi.
+ *
+ * Yayınlama üç karardan oluşuyor (hangi proje · nereye · onay) ama eskiden
+ * hepsi tek ekranda, sırasız duruyordu. Nerede olduğunu ve kaç adım kaldığını
+ * göstermek, "karışık" hissinin büyük kısmını tek başına çözüyor.
+ */
+function stepStrip(active) {
+  const keys = ['stepProject', 'stepTarget', 'stepReview'];
+  return el('div', { class: 'steps' }, ...keys.map((k, i) =>
+    el('div', { class: 'step' + (i === active ? ' on' : i < active ? ' done' : '') },
+      el('span', { class: 'n' }, i < active ? '✓' : String(i + 1)),
+      s(k))));
+}
+
 async function viewDeploy(root) {
   const d = ST.deploy;
   clear(root);
 
-  /* proje seçimi */
-  const projCard = el('div', { class: 'card' }, el('h2', {}, s('project')));
-  root.append(projCard);
-
+  /* ---- 1. adım: proje ------------------------------------------------- */
   if (!d.path) {
+    root.append(stepStrip(0));
     const list = el('div', {});
-    projCard.append(
-      el('p', { class: 'sub' }, d.relink ? s('relinkTo') : s('pickProject')),
+    root.append(el('div', { class: 'card' },
+      el('div', { class: 'sec' },
+        el('h2', {}, s('stepProject')),
+        el('p', {}, d.relink ? s('relinkTo') : s('stepProjectSub'))),
       d.relink
         ? el('div', { class: 'msg info' }, `${d.relink} → ${d.domain} · ~/${d.appRoot}`)
         : null,
-      list
-    );
+      el('p', { class: 'help' }, s('projectHelp')),
+      list));
+
     api('recent').then((r) => {
       if (r.items.length) {
         list.append(el('label', {}, s('recent')));
         list.append(el('div', { class: 'browse' }, ...r.items.map((i) =>
-          el('div', { onclick: () => pick(i.path) }, i.name, el('span', { class: 'muted mono' }, '  ' + i.path)))));
+          el('div', { onclick: () => pick(i.path) }, '📦 ' + i.name,
+            el('span', { class: 'muted mono' }, '  ' + i.path)))));
       }
       list.append(el('label', {}, s('browse')));
       const browseBox = el('div', {});
@@ -521,10 +950,16 @@ async function viewDeploy(root) {
     return;
   }
 
-  /* proje seçildi */
+  /* ---- 2. adım: hedef -------------------------------------------------- */
+  root.append(stepStrip(1));
+
+  const projCard = el('div', { class: 'card' });
+  root.append(projCard);
   projCard.append(
     el('div', { class: 'row' },
-      el('code', { style: 'flex:1;word-break:break-all' }, d.path),
+      el('span', { style: 'flex:1' },
+        el('b', {}, '📦 ' + d.path.split('/').filter(Boolean).pop()),
+        el('div', { class: 'mono muted', style: 'font-size:12px;word-break:break-all' }, d.path)),
       el('button', { onclick: () => { ST.deploy = { relink: d.relink, domain: d.domain, appRoot: d.appRoot }; renderMain(); } }, s('changeProject')),
       el('button', { onclick: () => { ST.deploy = {}; renderMain(); } }, s('cancel'))));
 
@@ -546,10 +981,15 @@ async function viewDeploy(root) {
       ...d.project.blockers.map((b) => el('div', {}, '• ' + b))));
     return;
   }
-  info.append(el('dl', { class: 'kv' },
-    el('dt', {}, s('framework')), el('dd', {}, 'Next.js ' + (d.project.nextVersion ?? '') + ' · ' + (d.project.router ?? '')),
-    el('dt', {}, s('startup')), el('dd', { class: 'mono' }, d.project.startupFile),
-    el('dt', {}, s('package')), el('dd', {}, d.plan ? d.plan.files + ' ' + s('files') + ' · ' + bytes(d.plan.bytes) : '')));
+  const isLaravel = d.project.framework === 'laravel';
+  info.append(el('div', { class: 'meta', style: 'margin:12px 0 0' },
+    el('span', {}, s('framework') + ': ',
+      el('b', {}, isLaravel
+        ? 'Laravel ' + (d.project.laravelVersion ?? '')
+        : 'Next.js ' + (d.project.nextVersion ?? '') + ' · ' + (d.project.router ?? ''))),
+    isLaravel ? null : el('span', {}, s('startup') + ': ', el('b', {}, d.project.startupFile)),
+    d.plan ? el('span', {}, s('package') + ': ',
+      el('b', {}, d.plan.files + ' ' + s('files') + ' · ' + bytes(d.plan.bytes))) : null));
   for (const w of d.project.warnings) info.append(el('div', { class: 'msg warn' }, w));
   if (d.plan?.skippedEnv?.length) {
     info.append(el('div', { class: 'msg info' }, s('envExcluded') + ': ' + d.plan.skippedEnv.join(', ')));
@@ -562,7 +1002,14 @@ async function viewDeploy(root) {
   }
   const o = ST.overview;
 
-  const targetCard = el('div', { class: 'card' }, el('h2', {}, s('willDeploy')));
+  // Laravel'in hedef adımı bambaşka: klasör seçilmiyor, migration ve vendor
+  // kipi seçiliyor. Ayrı bir fonksiyona bırakmak ikisini de okunur tutuyor.
+  if (isLaravel) return viewDeployLaravel(root, d, o);
+
+  const targetCard = el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('stepTarget')),
+      el('p', {}, s('stepTargetSub'))));
   const domSel = el('select', {},
     ...o.domains.filter((x) => x.type !== 'parked').map((x) =>
       el('option', { value: x.domain, selected: x.domain === (d.domain ?? (d.link && d.link.domain)) }, x.domain + ' — ' + x.typeLabel)));
@@ -609,25 +1056,35 @@ async function viewDeploy(root) {
   const adopt = el('input', { type: 'checkbox', style: 'width:auto' });
   const out = el('div', {});
 
+  const checkBtn = el('button', { class: 'primary' }, s('next') + ' →');
+  checkBtn.addEventListener('click', async () => {
+    checkBtn.disabled = true;
+    clear(out);
+    try {
+      const pf = await post('preflight', {
+        profile: ST.profile, domain: domSel.value, appRoot: rootIn.value, adopt: adopt.checked });
+      renderConfirm(out, pf, {
+        domain: domSel.value, appRoot: rootIn.value,
+        noBuild: noBuild.checked, adopt: adopt.checked });
+      out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) { showError(out, err); }
+    checkBtn.disabled = false;
+  });
+
   targetCard.append(
     el('label', {}, s('domain')), domSel,
-    el('label', {}, s('appRoot')), rootIn, hint,
-    el('div', { class: 'row', style: 'margin-top:14px' },
-      el('label', { style: 'margin:0;text-transform:none;font-size:13px' }, noBuild, ' ' + s('noBuild'))),
-    el('div', { class: 'row' },
-      el('label', { style: 'margin:0;text-transform:none;font-size:13px' }, adopt, ' ' + s('adopt'))),
-    el('div', { class: 'row', style: 'margin-top:16px' },
-      el('button', { class: 'primary', onclick: async (e) => {
-        e.target.disabled = true; clear(out);
-        try {
-          const pf = await post('preflight', {
-            profile: ST.profile, domain: domSel.value, appRoot: rootIn.value, adopt: adopt.checked });
-          renderConfirm(out, pf, {
-            domain: domSel.value, appRoot: rootIn.value,
-            noBuild: noBuild.checked, adopt: adopt.checked });
-        } catch (err) { showError(out, err); }
-        e.target.disabled = false;
-      } }, s('check'))),
+    el('p', { class: 'help' }, s('domainHelp')),
+    el('label', {}, s('appRoot')), rootIn,
+    el('p', { class: 'help' }, s('appRootHelp')), hint,
+    el('label', {}, s('actions')),
+    el('div', {},
+      el('label', { style: 'margin:0 0 6px;text-transform:none;font-size:13px;color:var(--fg)' },
+        noBuild, ' ' + s('noBuild')),
+      el('p', { class: 'help', style: 'margin:0 0 10px 22px' }, s('noBuildHelp')),
+      el('label', { style: 'margin:0 0 6px;text-transform:none;font-size:13px;color:var(--fg)' },
+        adopt, ' ' + s('adopt')),
+      el('p', { class: 'help', style: 'margin:0 0 4px 22px' }, s('adoptHelp'))),
+    el('div', { class: 'row', style: 'margin-top:18px' }, checkBtn),
     out);
   root.append(targetCard);
 
@@ -653,6 +1110,235 @@ async function viewDeploy(root) {
   }
 }
 
+/**
+ * Laravel'in hedef adımı.
+ *
+ * Next.js'ten iki temel farkı var ve ikisi de kullanıcının karar yükünü
+ * AZALTIYOR:
+ *   · Uygulama klasörü seçilmiyor — belge kökünün kendisi. Yanlış klasöre
+ *     kurma ihtimali yapısal olarak yok.
+ *   · Onun yerine migration ve vendor kipi soruluyor; bunlar Next.js'te
+ *     olmayan, Laravel'de olmazsa olmaz kararlar.
+ */
+async function viewDeployLaravel(root, d, o) {
+  const domSel = el('select', {}, ...o.domains.filter((x) => x.type !== 'parked').map((x) =>
+    el('option', { value: x.domain, selected: x.domain === (d.domain ?? (d.link && d.link.domain)) },
+      x.domain + ' — ' + x.typeLabel)));
+
+  const folder = el('div', { class: 'mono muted' });
+  const applyFolder = () => {
+    const dom = o.domains.find((x) => x.domain === domSel.value);
+    folder.textContent = '~/' + ((dom && dom.docroot) || '?') + '   ' + s('lvAuto');
+  };
+  domSel.addEventListener('change', applyFolder);
+  applyFolder();
+
+  const migrate = el('select', {},
+    el('option', { value: 'migrate', selected: true }, s('mgMigrate')),
+    el('option', { value: 'none' }, s('mgNone')),
+    el('option', { value: 'migrate-seed' }, s('mgMigrateSeed')),
+    el('option', { value: 'fresh-seed' }, s('mgFreshSeed')));
+  const migrateWarn = el('div', {});
+  migrate.addEventListener('change', () => {
+    clear(migrateWarn);
+    if (migrate.value === 'fresh-seed') {
+      migrateWarn.append(el('div', { class: 'msg warn' }, s('lvFreshWarn')));
+    }
+  });
+
+  const vendorSel = el('select', {},
+    el('option', { value: 'auto', selected: true }, s('vnAuto')),
+    el('option', { value: 'always' }, s('vnAlways')),
+    el('option', { value: 'server' }, s('vnServer')));
+  const keepDebug = el('input', { type: 'checkbox', style: 'width:auto' });
+
+  /* --- veritabanı --- */
+  const dbMode = el('select', {},
+    el('option', { value: 'skip', selected: true }, s('lvDbSkip')),
+    el('option', { value: 'new' }, s('lvDbNew')),
+    el('option', { value: 'existing' }, s('lvDbExisting')));
+  const dbBox = el('div', {});
+  const dbRefs = {};
+  let dbData = null;
+
+  const renderDb = async () => {
+    clear(dbBox);
+    for (const k of Object.keys(dbRefs)) delete dbRefs[k];
+    if (dbMode.value === 'skip') return;
+
+    if (dbMode.value === 'new') {
+      const name = el('input', { placeholder: 'magaza' });
+      dbBox.append(el('label', {}, s('dbNameLabel')), name, el('p', { class: 'help' }, s('dbNameHint')));
+      dbRefs.newName = name;
+      return;
+    }
+
+    dbBox.append(el('p', { class: 'sub' }, s('working')));
+    if (!dbData) {
+      try { dbData = await api('db/' + encodeURIComponent(ST.profile)); }
+      catch (err) { clear(dbBox); return showError(dbBox, err); }
+    }
+    clear(dbBox);
+
+    const dbSel = el('select', {}, ...dbData.databases.map((x) =>
+      el('option', { value: x.name }, x.name + ' — ' + bytes(x.size))));
+    const userMode = el('select', {},
+      el('option', { value: 'new', selected: true }, s('lvDbUserNew')),
+      el('option', { value: 'existing' }, s('lvDbUserExisting')));
+    const userBox = el('div', {});
+
+    const renderUser = () => {
+      clear(userBox);
+      delete dbRefs.uSel;
+      delete dbRefs.pass;
+      if (userMode.value === 'new') return;
+      const chosen = dbData.databases.find((x) => x.name === dbSel.value);
+      const users = (chosen && chosen.users) || [];
+      const uSel = el('select', {}, ...users.map((u) => el('option', { value: u }, u)));
+      const pass = el('input', { type: 'password' });
+      userBox.append(el('label', {}, s('dbUser')), uSel, el('label', {}, s('lvDbPassword')), pass);
+      dbRefs.uSel = uSel;
+      dbRefs.pass = pass;
+    };
+    userMode.addEventListener('change', renderUser);
+    dbSel.addEventListener('change', renderUser);
+
+    dbBox.append(el('label', {}, s('database')), dbSel,
+      el('label', {}, s('lvDbUser')), userMode, userBox);
+    dbRefs.dbSel = dbSel;
+    dbRefs.userMode = userMode;
+    renderUser();
+  };
+  dbMode.addEventListener('change', renderDb);
+
+  /** Seçilen veritabanı kipini, deploy'a verilecek şekle çevirir. */
+  const collectDb = () => {
+    if (dbMode.value === 'skip') return null;
+    if (dbMode.value === 'new') {
+      return { mode: 'new', name: (dbRefs.newName && dbRefs.newName.value.trim()) || '' };
+    }
+    const database = dbRefs.dbSel && dbRefs.dbSel.value;
+    if (!database) return null;
+    if (dbRefs.userMode && dbRefs.userMode.value === 'new') {
+      return { mode: 'new', name: database, user: database + '_app' };
+    }
+    return {
+      mode: 'existing',
+      database,
+      user: dbRefs.uSel && dbRefs.uSel.value,
+      password: (dbRefs.pass && dbRefs.pass.value) || '',
+      host: dbData && dbData.server.host,
+      port: dbData && dbData.server.port,
+    };
+  };
+
+  const out = el('div', {});
+  const nextBtn = el('button', { class: 'primary' }, s('next') + ' →');
+  nextBtn.addEventListener('click', async () => {
+    nextBtn.disabled = true;
+    clear(out);
+    try {
+      const pf = await post('laravel-preflight', { profile: ST.profile, domain: domSel.value });
+      renderLaravelConfirm(out, pf, {
+        domain: domSel.value,
+        laravel: { migrate: migrate.value, vendor: vendorSel.value, keepDebug: keepDebug.checked },
+        db: collectDb(),
+      });
+      out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) { showError(out, err); }
+    nextBtn.disabled = false;
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('stepTarget')),
+      el('p', {}, s('stepTargetSub'))),
+    el('label', {}, s('domain')), domSel,
+    el('p', { class: 'help' }, s('domainHelp')),
+    el('label', {}, s('lvFolder')), folder,
+    el('p', { class: 'help' }, s('lvServed') + ': public/ — ' + s('lvViaHt')),
+
+    el('div', { class: 'sec', style: 'margin:22px 0 10px' }, el('h2', {}, s('lvTitle'))),
+    el('label', {}, s('lvMigrate')), migrate, migrateWarn,
+    el('label', {}, s('lvVendor')), vendorSel,
+    el('label', {}, s('lvDb')), dbMode, dbBox,
+    el('p', { class: 'help', style: 'margin-top:10px' }, s('lvEnvNote')),
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+        keepDebug, ' ' + s('lvKeepDebug'))),
+    el('div', { class: 'row', style: 'margin-top:18px' }, nextBtn),
+    out));
+}
+
+/** Laravel kontrol adımı — neyin silineceği ve neyin kalacağı açıkça yazılı. */
+function renderLaravelConfirm(out, pf, form) {
+  clear(out);
+  const box = el('div', { class: 'card', style: 'margin:18px 0 0' });
+
+  box.append(
+    stepStrip(2),
+    el('div', { class: 'sec' },
+      el('h2', {}, s('stepReview')),
+      el('p', {}, s('reviewIntro'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('domain')), el('dd', {}, pf.target.domain),
+      el('dt', {}, s('lvFolder')), el('dd', { class: 'mono' }, '~/' + pf.appRoot),
+      el('dt', {}, s('stepReview')), el('dd', {},
+        el('span', { class: 'pill ' + (pf.first ? 'warn' : 'ok') },
+          pf.first ? s('lvFirst') : s('lvUpdate')))));
+
+  let confirmIn = null;
+  if (pf.count) {
+    box.append(el('div', { class: 'msg warn' },
+      el('strong', {}, s('dangerTitle')),
+      el('div', {}, s('lvNotEmpty').replace('{count}', pf.count)),
+      el('div', { class: 'mono muted', style: 'margin-top:6px;word-break:break-all' },
+        pf.sample.join('  ')),
+      el('div', { class: 'muted', style: 'margin-top:6px' }, s('lvKept'))));
+    box.append(el('label', {}, s('typeToConfirm')));
+    confirmIn = el('input', { placeholder: pf.appRoot });
+    box.append(confirmIn);
+    setTimeout(() => confirmIn.focus(), 40);
+  } else {
+    box.append(el('div', { class: 'msg info' }, s('firstDeployHint')));
+  }
+
+  const go = el('button', { class: pf.count ? 'danger' : 'primary', style: 'margin-top:16px' },
+    '🚀 ' + s('deployNow'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      /*
+       * Veritabanı ÖNCE hazırlanıyor, deploy sonra.
+       *
+       * Sunucudaki `.env`'e yazılacak bilgiler yayın başlamadan elde olmalı;
+       * yoksa migration çalışırken bağlantı bilgisi henüz yazılmamış olur.
+       */
+      let db = null;
+      if (form.db && form.db.mode === 'new') {
+        db = await post('db-create', { profile: ST.profile, name: form.db.name, user: form.db.user });
+      } else if (form.db && form.db.mode === 'existing') {
+        db = {
+          database: form.db.database, user: form.db.user,
+          password: form.db.password || null,
+          host: form.db.host, port: form.db.port,
+        };
+      }
+
+      const r = await post('deploy', {
+        profile: ST.profile, projectPath: ST.deploy.path,
+        domain: form.domain, laravel: form.laravel, db,
+        confirm: confirmIn ? confirmIn.value : undefined,
+      });
+      renderJob(out, r.jobId);
+    } catch (err) { go.disabled = false; showError(box, err); }
+  });
+
+  box.append(el('div', { class: 'row' }, go,
+    el('button', { onclick: () => clear(out) }, '← ' + s('back'))));
+  out.append(box);
+}
+
 function suggest(domain, apps) {
   const base = (domain.split('.')[0] || 'app').replace(/[^a-z0-9]/gi, '');
   let c = base + 'next', n = 2;
@@ -660,15 +1346,30 @@ function suggest(domain, apps) {
   return c;
 }
 
+/**
+ * 3. adım: kontrol.
+ *
+ * Bu ekranın tek işi, kullanıcının "onayla" demeden önce NE OLACAĞINI
+ * okumasını sağlamak. Eskiden yalnızca iki satır anahtar/değer ve bir uyarı
+ * kutusu vardı; hangi dosyaların korunacağı ya da klasörün dolu olduğu
+ * hiçbir yerde yazmıyordu.
+ */
 function renderConfirm(out, pf, form) {
   clear(out);
-  const box = el('div', { class: 'card', style: 'margin:16px 0 0' });
+  const box = el('div', { class: 'card', style: 'margin:18px 0 0' });
 
-  box.append(el('dl', { class: 'kv' },
-    el('dt', {}, s('domain')), el('dd', {}, pf.target.domain +
-      (pf.target.kind === 'new-subdomain' ? '  ' : '')),
-    el('dt', {}, s('appRoot')), el('dd', { class: 'mono' }, '~/' + pf.appRoot +
-      (pf.dirExists ? '' : '  ' + s('newApp')))));
+  box.append(
+    stepStrip(2),
+    el('div', { class: 'sec' },
+      el('h2', {}, s('stepReview')),
+      el('p', {}, s('reviewIntro'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('domain')), el('dd', {},
+        pf.target.domain,
+        pf.target.kind === 'new-subdomain' ? el('span', { class: 'pill warn' }, s('newSub')) : null),
+      el('dt', {}, s('appRoot')), el('dd', { class: 'mono' },
+        '~/' + pf.appRoot,
+        pf.dirExists ? null : el('span', { class: 'pill' }, s('newApp')))));
 
   if (pf.target.kind === 'new-subdomain') {
     box.append(el('div', { class: 'msg info' }, s('newSub') + ': ' + pf.target.domain));
@@ -687,14 +1388,23 @@ function renderConfirm(out, pf, form) {
   let confirmIn = null;
   if (pf.destructive) {
     /* Yazarak onay — tek tıkla üzerine yazma YOK. Sunucu da bunu doğruluyor. */
-    box.append(el('div', { class: 'msg warn' }, s('overwriteWarn')));
+    box.append(el('div', { class: 'msg warn' },
+      el('strong', {}, s('dangerTitle')),
+      el('div', {}, s('overwriteWarn')),
+      // Neyin KALACAĞINI söylemek, uyarıyı okunur kılan şey: kullanıcı
+      // ".env dosyam gidiyor mu?" sorusunu burada cevaplanmış bulmalı.
+      el('div', { class: 'muted', style: 'margin-top:6px' },
+        s('preserved') + ': .env · .env.local · .env.production · node_modules')));
     box.append(el('label', {}, s('typeToConfirm')));
-    confirmIn = el('input', { placeholder: s('confirmPlaceholder') });
+    confirmIn = el('input', { placeholder: pf.appRoot });
     box.append(confirmIn);
+    setTimeout(() => confirmIn.focus(), 40);
+  } else {
+    box.append(el('div', { class: 'msg info' }, s('firstDeployHint')));
   }
 
-  const go = el('button', { class: pf.destructive ? 'danger' : 'primary', style: 'margin-top:14px' },
-    s('deployNow'));
+  const go = el('button', { class: pf.destructive ? 'danger' : 'primary', style: 'margin-top:16px' },
+    '🚀 ' + s('deployNow'));
   go.addEventListener('click', async () => {
     go.disabled = true;
     try {
@@ -707,7 +1417,8 @@ function renderConfirm(out, pf, form) {
       renderJob(out, r.jobId);
     } catch (err) { go.disabled = false; showError(box, err); }
   });
-  box.append(el('div', {}, go));
+  box.append(el('div', { class: 'row' }, go,
+    el('button', { onclick: () => clear(out) }, '← ' + s('back'))));
   out.append(box);
 }
 
@@ -814,6 +1525,444 @@ function askRestore(out, b) {
     el('label', {}, s('typeToConfirm')), input, go));
 }
 
+/* ------------------------------------------------------------- database */
+/*
+ * Veritabanı sekmesi.
+ *
+ * cPanel'de bir Next.js uygulamasına veritabanı bağlamak dört ekran sürüyor:
+ * "Create Database", "Create User", "Add User To Database", yetki kutuları —
+ * ve sonunda bağlantı dizesini elle kuruyorsun. Buradaki tek alan o dördünün
+ * yerine geçiyor.
+ *
+ * Bu işlemler İŞ (job) olarak koşmuyor: cPanel'in MySQL UAPI'si tam, yani
+ * cron köprüsü yok, bekleme yok, hepsi tek turda bitiyor.
+ */
+const withPrefix = (p, n) => (!p || String(n).startsWith(p) ? String(n) : p + n);
+
+function copyBtn(text) {
+  const b = el('button', {}, s('copy'));
+  b.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Pano izni yoksa metni yine de kullanıcıya ULAŞTIR — sessizce başarısız
+      // olmak, şifresini bir daha göremeyeceği anlamına gelir.
+      window.prompt(s('copy'), text);
+      return;
+    }
+    b.textContent = s('copied');
+    setTimeout(() => { b.textContent = s('copy'); }, 1200);
+  });
+  return b;
+}
+
+async function appsForEnv() {
+  if (!ST.overview) ST.overview = await api('overview/' + encodeURIComponent(ST.profile));
+  return ST.overview.apps || [];
+}
+
+async function viewDatabase(root) {
+  clear(root);
+  root.append(el('div', { class: 'card' }, s('working')));
+  let d;
+  try { d = await api('db/' + encodeURIComponent(ST.profile)); }
+  catch (err) { clear(root); return showError(root, err); }
+  clear(root);
+
+  const reload = () => { const r = root; clear(r); viewDatabase(r); };
+  const pmaFor = (name) => {
+    // Şifre kasadaysa otomatik girişli yoldan; değilse cPanel giriş sayfasına.
+    if (autoLogin()) return cpanelUrl('phpmyadmin', { db: name });
+    const u = new URL(d.pmaUrl, location.origin);
+    u.searchParams.set('goto_uri', '/3rdparty/phpMyAdmin/index.php?db=' + name);
+    return u.toString();
+  };
+  const pma = (href, label) =>
+    el('a', { href, target: '_blank', rel: 'noreferrer' }, el('button', {}, label));
+
+  /* --- sunucu + phpMyAdmin --- */
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'flex:1' }, s('database')),
+      pma(autoLogin() ? cpanelUrl('phpmyadmin', {}) : d.pmaUrl, s('openPma')),
+      el('button', { onclick: reload }, s('refresh'))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('mysqlServer')), el('dd', { class: 'mono' }, d.server.host + ':' + d.server.port),
+      el('dt', {}, s('prefixLabel')), el('dd', { class: 'mono' }, d.restrictions.prefix || s('noPrefix'))),
+    el('p', { class: 'sub', style: 'margin:12px 0 0' }, s('pmaNote'))));
+
+  /* --- tek adımda kurulum --- */
+  const nameIn = el('input', { placeholder: 'shop' });
+  const preview = el('div', { class: 'muted mono', style: 'margin-top:6px;min-height:18px' }, '');
+  const createOut = el('div', {});
+  const refreshPreview = () => {
+    const v = nameIn.value.trim();
+    preview.textContent = v ? s('willBe') + ': ' + withPrefix(d.restrictions.prefix, v) : '';
+  };
+  nameIn.addEventListener('input', refreshPreview);
+
+  const createBtn = el('button', { class: 'primary', style: 'margin-top:12px' }, s('create'));
+  const doCreate = async () => {
+    if (!nameIn.value.trim()) return;
+    createBtn.disabled = true;
+    clear(createOut);
+    try {
+      const r = await post('db-create', { profile: ST.profile, name: nameIn.value.trim() });
+      nameIn.value = '';
+      refreshPreview();
+      await renderDbResult(createOut, r);
+    } catch (err) { showError(createOut, err); }
+    finally { createBtn.disabled = false; }
+  };
+  createBtn.addEventListener('click', doCreate);
+  nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doCreate(); });
+
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('newDb')),
+    el('p', { class: 'sub' }, s('newDbNote')),
+    el('label', {}, s('dbNameLabel')), nameIn,
+    preview,
+    el('div', { class: 'muted', style: 'font-size:12px;margin-top:4px' }, s('dbNameHint')),
+    createBtn,
+    createOut));
+
+  /* --- veritabanları --- */
+  const dropOut = el('div', {});
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('dbs')),
+    d.databases.length === 0 ? el('p', { class: 'sub' }, s('noDbs')) :
+      el('table', {},
+        el('thead', {}, el('tr', {}, el('th', {}, s('database')), el('th', {}, s('size')),
+          el('th', {}, s('dbUsers')), el('th', {}, s('actions')))),
+        el('tbody', {}, ...d.databases.map((db) => el('tr', {},
+          el('td', { class: 'mono' }, db.name),
+          el('td', { class: 'muted' }, bytes(db.size)),
+          el('td', { class: 'muted mono' }, db.users.join(', ') || s('none')),
+          el('td', {}, el('div', { class: 'row' },
+            pma(pmaFor(db.name), 'phpMyAdmin'),
+            el('button', { class: 'danger', onclick: () => askDrop(dropOut, 'db-delete', 'database', db.name, reload) }, s('del')))))))),
+    dropOut));
+
+  /* --- MySQL kullanıcıları --- */
+  const userOut = el('div', {});
+  root.append(el('div', { class: 'card' },
+    el('h2', {}, s('dbUsers')),
+    d.users.length === 0 ? el('p', { class: 'sub' }, s('noDbUsers')) :
+      el('table', {},
+        el('tbody', {}, ...d.users.map((u) => el('tr', {},
+          el('td', { class: 'mono' }, u.name),
+          // cPanel bu listeyi list_users'ta veriyor; boş dönen eski sürümlerde
+          // veritabanı listesinden geriye doğru türetiyoruz.
+          el('td', { class: 'muted mono' },
+            (u.databases || []).join(', ') ||
+              d.databases.filter((db) => db.users.includes(u.name)).map((db) => db.name).join(', ') ||
+              s('none')),
+          el('td', { style: 'text-align:right' }, el('div', { class: 'row', style: 'justify-content:flex-end' },
+            el('button', { onclick: async (e) => {
+              e.target.disabled = true;
+              clear(userOut);
+              try {
+                const r = await post('db-password', { profile: ST.profile, user: u.name });
+                userOut.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+                  el('div', { class: 'row' },
+                    el('code', { style: 'flex:1;word-break:break-all' }, r.password), copyBtn(r.password)),
+                  el('div', { class: 'msg warn', style: 'margin-top:12px' }, s('passOnce'))));
+              } catch (err) { showError(userOut, err); }
+              finally { e.target.disabled = false; }
+            } }, s('newPassword')),
+            el('button', { class: 'danger', onclick: () => askDrop(userOut, 'db-user-delete', 'user', u.name, reload) }, s('del')))))))),
+    userOut));
+
+  /* --- sunucudaki .env --- */
+  await envCard(root).catch(() => {});
+}
+
+/**
+ * Yıkıcı işlem: adı BİREBİR yazmadan olmaz.
+ *
+ * Veritabanı silmenin yedeği yok — klasör silmekten daha geri alınamaz bir iş.
+ * Onay sunucuda da denetleniyor; bu kutu yalnızca kullanıcı içindir.
+ */
+function askDrop(out, route, field, name, done) {
+  clear(out);
+  const input = el('input', { placeholder: name });
+  const go = el('button', { class: 'danger', style: 'margin-top:12px' }, s('del'));
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    try {
+      await post(route, { profile: ST.profile, [field]: name, confirm: input.value });
+      done();
+    } catch (err) { go.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg warn' }, s('dropWarn').replace('{name}', name)),
+    el('label', {}, s('typeToConfirm')), input,
+    el('div', { class: 'row', style: 'margin-top:12px' },
+      go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+  setTimeout(() => input.focus(), 30);
+}
+
+/**
+ * Kurulum sonucu.
+ *
+ * Şifre BİR KEZ gösteriliyor — cPanel de bizde de saklanmıyor. Bu yüzden aynı
+ * ekranda hem kopyalama hem de doğrudan `.env` dosyasına yazma var: kullanıcı
+ * bu kartı kapattığında bağlantı dizesi ya kaydedilmiş olmalı ya da yeniden
+ * üretilmesi gerekecek.
+ */
+async function renderDbResult(out, r) {
+  clear(out);
+  const card = el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'msg info' }, s('ready') + ': ' + r.database),
+    r.dbExisted ? el('div', { class: 'msg warn' }, s('dbExistedNote')) : null,
+    r.userExisted ? el('div', { class: 'msg warn' }, s('userExistedNote')) : null,
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('database')), el('dd', { class: 'mono' }, r.database),
+      el('dt', {}, s('dbUser')), el('dd', { class: 'mono' }, r.user),
+      r.password ? el('dt', {}, s('dbPassword')) : null,
+      r.password ? el('dd', { class: 'mono' }, r.password) : null));
+  out.append(card);
+
+  if (!r.url) return;
+  card.append(
+    el('label', {}, 'DATABASE_URL'),
+    el('div', { class: 'row' },
+      el('code', { style: 'flex:1;word-break:break-all' }, r.url), copyBtn(r.url)),
+    el('div', { class: 'msg warn', style: 'margin-top:12px' }, s('passOnce')));
+
+  /* Bağlantı dizesini uygulamaya taşı — asıl işi bitiren adım bu. */
+  const msg = el('div', {});
+  const apps = await appsForEnv().catch(() => []);
+  const sel = el('select', { style: 'width:auto;min-width:200px' },
+    el('option', { value: '' }, s('pickApp')),
+    ...apps.map((a) => el('option', { value: a.path }, a.name + ' · ~/' + a.path)));
+
+  const write = async (btn, fn, label) => {
+    btn.disabled = true;
+    clear(msg);
+    try {
+      await fn();
+      msg.append(el('div', { class: 'msg info' }, s('envWritten').replace('{file}', label())));
+    } catch (err) { showError(msg, err); }
+    finally { btn.disabled = false; }
+  };
+
+  const serverBtn = el('button', { class: 'primary' }, s('writeEnv'));
+  serverBtn.addEventListener('click', () => {
+    if (!sel.value) return;
+    write(serverBtn,
+      () => post('env', { profile: ST.profile, appRoot: sel.value, file: '.env',
+        entries: { DATABASE_URL: r.url } }),
+      () => '~/' + sel.value + '/.env');
+  });
+
+  const row = el('div', { class: 'row', style: 'margin-top:12px' }, sel, serverBtn);
+  if (ST.deploy.path) {
+    const localBtn = el('button', {}, s('writeLocalEnv'));
+    localBtn.addEventListener('click', () => write(localBtn,
+      () => post('env-local', { projectPath: ST.deploy.path, file: '.env.local',
+        entries: { DATABASE_URL: r.url } }),
+      () => ST.deploy.path + '/.env.local'));
+    row.append(localBtn);
+  }
+  card.append(row, msg);
+}
+
+/**
+ * Sunucudaki ortam dosyası.
+ *
+ * Değerler MASKELİ geliyor; "Göster" ayrı bir istek. Ekran paylaşımında bir
+ * `DATABASE_URL`'in düz görünmesi, onu paylaşmakla aynı şey.
+ */
+async function envCard(root) {
+  const apps = await appsForEnv();
+  if (!apps.length) return;
+
+  const appSel = el('select', { style: 'width:auto;min-width:180px' },
+    ...apps.map((a) => el('option', { value: a.path }, a.name)));
+  const fileSel = el('select', { style: 'width:auto' },
+    ...['.env', '.env.production', '.env.local'].map((f) => el('option', { value: f }, f)));
+  const body = el('div', {});
+  let reveal = false;
+
+  const load = async () => {
+    clear(body);
+    body.append(el('p', { class: 'sub' }, s('working')));
+    let r;
+    try {
+      r = await api('env?profile=' + encodeURIComponent(ST.profile) +
+        '&appRoot=' + encodeURIComponent(appSel.value) +
+        '&file=' + encodeURIComponent(fileSel.value) + (reveal ? '&reveal=1' : ''));
+    } catch (err) { clear(body); return showError(body, err); }
+    clear(body);
+
+    if (!r.exists && !r.entries.length) body.append(el('p', { class: 'sub' }, s('noEnv')));
+    else body.append(el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, s('key')), el('th', {}, s('value')), el('th', {}))),
+      el('tbody', {}, ...r.entries.map((e) => el('tr', {},
+        el('td', { class: 'mono' }, e.key),
+        el('td', { class: 'mono muted', style: 'word-break:break-all' }, e.value),
+        el('td', { style: 'text-align:right' },
+          el('button', { class: 'link', onclick: async (ev) => {
+            ev.target.disabled = true;
+            try { await post('env', { profile: ST.profile, appRoot: appSel.value, file: fileSel.value, remove: e.key }); await load(); }
+            catch (err) { ev.target.disabled = false; showError(body, err); }
+          } }, s('del'))))))));
+
+    const k = el('input', { placeholder: s('key'), style: 'max-width:220px' });
+    const v = el('input', { placeholder: s('value') });
+    const add = el('button', {}, s('addVar'));
+    add.addEventListener('click', async () => {
+      if (!k.value.trim()) return;
+      add.disabled = true;
+      try {
+        await post('env', { profile: ST.profile, appRoot: appSel.value, file: fileSel.value,
+          entries: { [k.value.trim()]: v.value } });
+        await load();
+      } catch (err) { add.disabled = false; showError(body, err); }
+    });
+    body.append(el('div', { class: 'row', style: 'margin-top:12px' }, k, v, add,
+      el('button', { onclick: () => { reveal = !reveal; load(); } }, reveal ? s('hide') : s('reveal'))));
+  };
+
+  appSel.addEventListener('change', load);
+  fileSel.addEventListener('change', load);
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'flex:1' }, s('envTitle')), appSel, fileSel),
+    el('p', { class: 'sub' }, s('envNote')),
+    body));
+  await load();
+}
+
+/**
+ * Hesap DÜZENLEME.
+ *
+ * Eskiden yoktu: token iptal edildiyse, sunucu adı ya da kullanıcı adı
+ * değiştiyse tek çare hesabı silip yeniden eklemekti — ve bu, sunucuda öksüz
+ * bir tam yetki token'ı bırakıyordu.
+ *
+ * Şifre alanı BOŞ bırakılabilir: yalnızca doldurulduğunda yeni token üretilir.
+ */
+function renderEditProfile(out, p, { focusPassword = false } = {}) {
+  clear(out);
+  const host = el('input', { value: p.host });
+  const port = el('input', { type: 'number', value: String(p.port) });
+  const user = el('input', { value: p.user });
+  const pass = el('input', { type: 'password' });
+  const save = el('input', { type: 'checkbox', style: 'width:auto' });
+  save.checked = Boolean(p.hasPassword);
+  const msg = el('div', {});
+  const go = el('button', { class: 'primary', style: 'margin-top:14px' }, s('save'));
+
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    clear(msg);
+    try {
+      const r = await api('profiles/' + encodeURIComponent(p.name), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          host: host.value, port: Number(port.value) || 2083, user: user.value,
+          password: pass.value || undefined,
+          // Kutu işaretliyse ama yeni şifre girilmediyse, kayıtlı şifre olduğu
+          // gibi kalır; kutu KALDIRILDIYSA kayıtlı şifre silinir.
+          savePassword: save.checked,
+        }),
+      });
+      ST.profiles = r.profiles;
+      if (ST.profile === p.name) ST.profile = r.profiles.find((x) => x.host === host.value)?.name ?? ST.profile;
+      ST.overview = null;
+      renderMain();
+    } catch (err) { go.disabled = false; showError(msg, err); }
+  });
+
+  out.append(el('div', { class: 'card', style: 'margin:12px 0' },
+    el('div', { class: 'sec' }, el('h2', {}, s('editAccount')), el('p', {}, s('editAccountHint'))),
+    el('div', { class: 'grid2' },
+      el('div', {}, el('label', {}, s('host')), host),
+      el('div', {}, el('label', {}, s('port')), port)),
+    el('label', {}, s('user')), user,
+    el('label', {}, s('newCpanelPassword')), pass,
+    el('p', { class: 'help' }, s('newCpanelPasswordHint')),
+    el('div', { class: 'row', style: 'margin-top:12px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+        save, ' ' + s('storePassword'))),
+    el('p', { class: 'help', style: 'margin-left:22px' }, s('storePasswordHint')),
+    el('div', { class: 'row' }, go, el('button', { onclick: () => clear(out) }, s('cancel'))),
+    msg));
+
+  setTimeout(() => (focusPassword ? pass : host).focus(), 40);
+}
+
+/**
+ * Hesap ekleme formu — TEK bir yerde.
+ *
+ * Hem karşılama ekranı hem Ayarlar sekmesi bunu kullanıyor. İki kopya
+ * tutmak, birinde düzeltilen bir davranışın diğerinde kalması demekti.
+ */
+function renderAddProfile(root, { autofocus = false, askMaster = false, onDone = null } = {}) {
+  const host = el('input', { placeholder: 'sunucu.example.com' });
+  const user = el('input', { placeholder: 'cpaneluser' });
+  const port = el('input', { type: 'number', value: '2083' });
+  const pass = el('input', { type: 'password' });
+  const master = el('input', { type: 'password' });
+  // Varsayılan AÇIK: kullanıcı tek tıkla phpMyAdmin/Dosya Yöneticisi bekliyor.
+  // Kapatmak tek tık, ve kapatınca bu ekranlar cPanel girişine yönlendiriyor.
+  const savePass = el('input', { type: 'checkbox', style: 'width:auto' });
+  savePass.checked = true;
+  const out = el('div', {});
+  const btn = el('button', { class: 'primary', style: 'margin-top:16px' }, s('add'));
+
+  const submit = async () => {
+    btn.disabled = true;
+    clear(out);
+    try {
+      /*
+       * Ana şifre YALNIZCA ilk hesapta soruluyor: kasa henüz yok, kurulması
+       * gerekiyor. Sonrakilerde kasa zaten açık ve TEK — her hesap için ayrı
+       * şifre istemek "şifrem global olsun" beklentisinin tam tersiydi.
+       */
+      const r = await post('profiles', {
+        host: host.value, user: user.value, port: Number(port.value) || 2083,
+        password: pass.value, savePassword: savePass.checked,
+        master: askMaster ? master.value : undefined });
+      ST.profiles = r.profiles;
+      if (!ST.profile) ST.profile = r.profiles[0]?.name ?? null;
+      pass.value = '';
+      ST.overview = null;
+      (onDone ?? renderMain)();
+    } catch (err) { showError(out, err); }
+    btn.disabled = false;
+  };
+  btn.addEventListener('click', submit);
+  for (const input of [host, user, pass, master]) {
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  }
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('addProfile')),
+      el('p', {}, s('passwordNote'))),
+    el('div', { class: 'grid2' },
+      el('div', {}, el('label', {}, s('host')), host,
+        el('p', { class: 'help' }, 'srv12.example.com · sunucu.firmaniz.com')),
+      el('div', {}, el('label', {}, s('port')), port,
+        el('p', { class: 'help' }, '2083'))),
+    el('label', {}, s('user')), user,
+    el('label', {}, s('password')), pass,
+    el('div', { class: 'row', style: 'margin-top:10px' },
+      el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+        savePass, ' ' + s('storePassword'))),
+    el('p', { class: 'help', style: 'margin-left:22px' }, s('storePasswordHint')),
+    askMaster ? el('label', {}, s('masterNew')) : null,
+    askMaster ? master : null,
+    askMaster ? el('p', { class: 'help' }, s('masterNewHelp')) : null,
+    btn, out));
+
+  if (autofocus) setTimeout(() => host.focus(), 40);
+}
+
 /* ------------------------------------------------------------- settings */
 async function viewSettings(root) {
   clear(root);
@@ -839,52 +1988,42 @@ async function viewSettings(root) {
           alert(err.message);
         }
       });
+      const editBtn = el('button', {}, s('edit'));
+      const testBtn = el('button', {}, s('testConn'));
+      const out = el('div', {});
+
+      editBtn.addEventListener('click', () => renderEditProfile(out, p));
+      testBtn.addEventListener('click', async () => {
+        testBtn.disabled = true;
+        clear(out);
+        try {
+          const r = await post('profiles/' + encodeURIComponent(p.name) + '/test');
+          out.append(el('div', { class: 'msg ' + (r.ok ? 'info' : 'err') },
+            r.ok
+              ? el('span', {}, '✓ ' + s('connOk').replace('{user}', r.user)
+                  + (r.domain ? ' · ' + r.domain : ''))
+              : el('span', {}, '✕ ' + s('connBad') + ' — ' + r.error)));
+          if (!r.ok) renderEditProfile(out, p, { focusPassword: true });
+        } catch (err) { showError(out, err); }
+        testBtn.disabled = false;
+      });
+
       return el('tr', {},
-        el('td', { class: 'mono' }, p.user + '@' + p.host + ':' + p.port),
-        el('td', { class: 'muted mono' }, p.tokenName || ''),
-        el('td', { style: 'text-align:right' }, btn));
+        el('td', {},
+          el('div', { class: 'mono' }, p.user + '@' + p.host + ':' + p.port),
+          el('div', { class: 'muted', style: 'font-size:11.5px' },
+            (p.tokenName || s('none')),
+            p.hasPassword ? el('span', { class: 'pill ok', style: 'margin-left:8px' }, '⚡ ' + s('autoLoginOn')) : null),
+          out),
+        el('td', { style: 'text-align:right;white-space:nowrap' },
+          el('div', { class: 'row', style: 'justify-content:flex-end' }, testBtn, editBtn, btn)));
     };
     card.append(el('table', {}, el('tbody', {}, ...ST.profiles.map(removeProfileRow))));
   }
   root.append(card);
 
   /* --- hesap ekle --- */
-  const host = el('input', { placeholder: 'sunucu.example.com' });
-  const user = el('input', {});
-  const port = el('input', { type: 'number', value: '2083' });
-  const pass = el('input', { type: 'password' });
-  const addOut = el('div', {});
-  const addBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('add'));
-
-  addBtn.addEventListener('click', async () => {
-    addBtn.disabled = true; clear(addOut);
-    try {
-      /*
-       * Ana şifre SORULMUYOR: kasa bu oturumda zaten açık ve tek. Her hesap
-       * için ayrı şifre istemek, "şifrem global olsun" beklentisinin tam
-       * tersiydi.
-       */
-      const r = await post('profiles', {
-        host: host.value, user: user.value, port: Number(port.value) || 2083,
-        password: pass.value });
-      ST.profiles = r.profiles;
-      if (!ST.profile) ST.profile = r.profiles[0]?.name ?? null;
-      pass.value = '';
-      ST.overview = null;
-      renderMain();
-    } catch (err) { showError(addOut, err); }
-    addBtn.disabled = false;
-  });
-
-  root.append(el('div', { class: 'card' },
-    el('h2', {}, s('addProfile')),
-    el('div', { class: 'grid2' },
-      el('div', {}, el('label', {}, s('host')), host),
-      el('div', {}, el('label', {}, s('port')), port)),
-    el('label', {}, s('user')), user,
-    el('label', {}, s('password')), pass,
-    el('p', { class: 'sub' }, s('passwordNote')),
-    addBtn, addOut));
+  renderAddProfile(root, {});
 
   /* --- tercihler --- */
   let prefs = {};

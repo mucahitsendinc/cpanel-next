@@ -23,6 +23,15 @@ const OPTIONS = {
   transport: { type: 'string' },
   driver: { type: 'string' },
 
+  // veritabanı
+  'env-local': { type: 'boolean', default: false },
+
+  // laravel
+  migrate: { type: 'string' },
+  'no-migrate': { type: 'boolean', default: false },
+  vendor: { type: 'string' },
+  'keep-debug': { type: 'boolean', default: false },
+
   // davranış
   lang: { type: 'string' },
   'no-open': { type: 'boolean', default: false },
@@ -50,6 +59,7 @@ const COMMANDS = {
   ui: () => import('../lib/commands/ui.mjs'),
   config: () => import('../lib/commands/config.mjs'),
   maintenance: () => import('../lib/commands/maintenance.mjs'),
+  db: () => import('../lib/commands/db.mjs'),
   update: () => import('../lib/commands/update.mjs'),
 };
 

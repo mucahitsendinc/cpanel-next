@@ -1,7 +1,7 @@
 # cpanel-next
 
-Next.js projelerini cPanel paylaşımlı hostinge terminalden — ya da yerel bir web
-arayüzünden — yayınlar.
+Next.js ve Laravel projelerini cPanel paylaşımlı hostinge terminalden — ya da
+yerel bir web arayüzünden — yayınlar.
 
 ```bash
 npm i -g cpanel-next
@@ -79,7 +79,8 @@ deploymanager login
 2. Araç giriş yapıp **kendine bir API token üretiyor**
 3. Bir **ana şifre** belirliyorsunuz
 4. Token onunla şifrelenip (scrypt + AES-256-GCM) `0600` izniyle saklanıyor
-5. **cPanel şifreniz hiçbir yere yazılmıyor**
+5. **cPanel şifreniz hiçbir yere yazılmıyor** — o hesap için otomatik girişi
+   açmadıysanız (aşağıda); açtıysanız yalnızca kasada şifreli olarak duruyor
 
 Sonrasında tarayıcı hiç açılmıyor; yalnızca ana şifre soruluyor.
 
@@ -108,11 +109,12 @@ deploymanager doctor       bağlantı ve ortam denetimi
 deploymanager ui           yerel web arayüzünü aç
 deploymanager config       varsayılan arayüz ve dil
 deploymanager maintenance  bakım sayfasını aç/kapat
+deploymanager db           MySQL veritabanları (list, create, drop, users, pma)
 ```
 
 Sık kullanılan bayraklar: `--dry-run`, `--domain`, `--app-root`, `--no-build`,
 `--clean-modules`, `--confirm <ad>`, `--web` / `--terminal`, `--lang tr|en`,
-`-y`, `-v`.
+`--env-local`, `-y`, `-v`.
 
 ---
 
@@ -125,6 +127,48 @@ deploymanager ui
 Hesapları, domainleri ve uygulamaları tıklayarak yönetiyorsunuz: canlı loglu
 deploy, geri alma, başlat/durdur/yeniden başlat, silme, kayıtlar, hesap
 ekleme/çıkarma.
+
+Arayüz, cPanel ya da Node bilgisi olmadan ilk bakışta anlaşılacak şekilde
+kurgulandı:
+
+- İlk açılışta bir **karşılama ekranı** aracın ne yaptığını üç adımda anlatıyor
+  ve tek bir hesap istiyor. (Eskiden yeni kullanıcı doğrudan kasa ekranına
+  düşüyor, şifresini yazıyor ve `no profiles` hatası alıyordu: arkasında hiçbir
+  şey olmayan, geçilemeyen bir kapı.)
+- Yayınlama **üç adımlı** bir akış — proje → hedef → kontrol — ve üstte bir
+  adım şeridi var; nerede olduğunuzu ve ne kaldığını görüyorsunuz.
+- Her alanın altında tek satır açıklama, her boş listede "şimdi ne yapmalıyım"
+  kartı var; kontrol adımı neyin silineceğini *ve neyin korunacağını* yazıyor.
+- Uygulamalar tablo satırı değil kart: durum, adres, klasör ve bütün işlemler
+  tek yerde.
+- **phpMyAdmin**, **Dosya Yöneticisi** ve **cPanel** tek tıkla açılıyor; hesap
+  için ya da doğrudan bir uygulamanın klasörü için.
+- Hesaplar **düzenlenebiliyor**: sunucu, port, kullanıcı adı ve token yenileme.
+  Yanında bir **"Bağlantıyı test et"** düğmesi var — "token'ım hâlâ geçerli mi"
+  sorusunun cevabı deploy'un ortasında değil burada veriliyor.
+
+### Otomatik giriş
+
+Yukarıdaki bağlantılar sizin adınıza cPanel'e **giriş yapıp** doğrudan hedefe
+götürüyor. Bunun için cPanel şifrenizin saklanması gerekiyor; hesap eklerken
+varsayılan açık, tek tıkla kapanıyor.
+
+Neden şifre gerekiyor: cPanel'in web arayüzü API token'ıyla değil `cpsession`
+çereziyle çalışıyor ve o çerez kullanıcının tarayıcısında olmak zorunda.
+cPanel'in kendi spesifikasyonu `Session::create_temp_user` için birebir şunu
+yazıyor: *"geçerli bir cPanel oturum kimliği gerektirir… aksi hâlde WHM API 1
+`create_user_session` kullanmalısınız"*. WHM bu aracın kapsamı dışında, yani
+token'dan tarayıcı oturumu üretmenin bir yolu yok.
+
+Saklandığında şifre, token ile **aynı kasada**: ana şifrenizden scrypt ile
+türetilen anahtarla AES-256-GCM, `0600` izinli dosya. Giriş anında yerel
+sunucudan `no-store` başlıklı tek kullanımlık bir sayfa üretiliyor; sayfanın
+`form-action` politikası **yalnızca** o cPanel adresine izin veriyor ve form
+gönderildikten sonra DOM'dan siliniyor. Şifre yalnızca tarayıcınızdan cPanel'e
+gidiyor; API token'ı bu sayfaya hiç girmiyor.
+
+Kapalıyken bağlantılar cPanel'in giriş sayfasına `goto_uri` ile gidiyor:
+şifrenizi cPanel'e siz giriyorsunuz, yine doğru ekrana düşüyorsunuz.
 
 Varsayılanı web yaptıysanız, bir projede `deploymanager` yazınca tarayıcı o proje
 seçili açılıyor ve **terminal bekliyor**. Tarayıcıyı kapatınca terminale
@@ -149,6 +193,187 @@ Güvenlik o sunucuda sonradan eklenen bir katman değil, ilk yazılan şey:
 
 ---
 
+## Laravel
+
+```bash
+cd ~/projeler/magaza
+deploymanager            # ilk kurulum
+deploymanager update     # sonraki her yayın
+```
+
+### Belge kökü değiştirilmiyor
+
+Laravel'in `public/` sorununun "temiz" çözümü `SubDomain::changedocroot` ile
+belge kökünü `<klasör>/public` yapmak. Kullanmıyoruz: ana domainde zaten
+mümkün değil (WHM ister), addon/subdomain'de de hesabın yapılandırmasını
+kalıcı olarak değiştirir.
+
+Bunun yerine Laravel domainin **kendi klasörüne** kuruluyor ve işi `.htaccess`
+yapıyor:
+
+```
+~/magaza.site.com/          ← belge kökü (dokunulmadı)
+  .htaccess                 ← her isteği public/'e alır
+  app/ config/ vendor/ .env ← yönlendirme yüzünden URL'den erişilemez
+  public/                   ← Laravel'in kendi .htaccess'i devralır
+```
+
+Uygulama klasörü bu yüzden **sorulmuyor** — domainin belge kökünün ta kendisi.
+Yanlış klasöre kurma ihtimali yapısal olarak yok.
+
+> Bu düzenin bedeli var: kaynak dosyalar fiziksel olarak belge kökünün altında.
+> `AllowOverride None` ya da kapalı bir mod_rewrite, `.env` dosyanızı internete
+> açar. Bu yüzden yayından sonra araç `https://domain/.env`, `/composer.json` ve
+> `/artisan` adreslerini **gerçekten çekip** okunabiliyor mu diye bakıyor ve
+> okunabiliyorsa açıkça hata veriyor.
+
+### Kod siliniyor, veri duruyor
+
+İki taraflı bir sorun ve tek kural ikisini birden çözmüyor:
+
+- Yerelde **sildiğiniz** dosya sunucuda kalmamalı. Sadece üzerine yazsak,
+  silinmiş bir controller sunucuda yaşamaya devam eder.
+- Sunucuda **üretilen** dosya silinmemeli: `public/uploads`, `storage/logs`,
+  faturalar, kullanıcı görselleri.
+
+| | davranış |
+|---|---|
+| `app` `config` `routes` `database` `resources` `bootstrap` `vendor` | **silinip yeniden kuruluyor** |
+| `storage` | hiç paketlenmiyor, hiç silinmiyor |
+| `public` | paket üstüne açılıyor; **silinmiyor** |
+| `.env` `.htaccess` `.well-known` `cgi-bin` `.user.ini` | dokunulmuyor |
+
+`public/` için eskimiş dosya sorunu **manifesto** ile çözülüyor: her deploy'da
+gönderdiğimiz public yollarının listesi sahiplik işaretine yazılıyor. Sonraki
+deploy'da "geçen sefer bizim gönderdiğimiz ama bu sefer göndermediğimiz"
+dosyalar siliniyor. Bizim hiç göndermediğimiz bir dosya listede olmadığı için
+**asla** silinemez — bu bir temenni değil, kümelerin yapısı.
+
+### `.env`
+
+Yerel `.env` dosyanız **gönderilmez** ve sunucudaki dosyanın hiçbir satırı
+silinmez. Sadece şunlar yazılır:
+
+- `APP_DEBUG` `true` ise `false` yapılır (`--keep-debug` ile kapatılır)
+- ilk kurulumda `APP_URL`, seçtiğiniz domainden
+- veritabanı seçtiyseniz `DB_*`
+
+Sunucuda hiç `.env` yoksa `.env.example`'dan oluşturulur ve `APP_KEY` üretilir.
+
+### vendor ve node paketleri
+
+`node_modules` **hiç gitmiyor**: Vite/Mix derlemesi yerelde koşuyor, sunucuya
+yalnızca `public/build` çıktısı gidiyor.
+
+`vendor` için üç kip var, varsayılan `auto`:
+
+| kip | davranış |
+|---|---|
+| `auto` | `composer.lock` **değiştiyse** gönder; değişmediyse sunucudaki korunur (~2 MB'lık güncellemeler) |
+| `always` | her deploy'da gönder |
+| `server` | gönderme, sunucuda `composer install --no-dev -o` çalıştır |
+
+`server` kipi varsayılan değil: composer bellek canavarı ve CloudLinux'un
+varsayılan 1 GB LVE sınırında OOM riski gerçek.
+
+### Migration
+
+| | varsayılan |
+|---|---|
+| ilk kurulum | `migrate:fresh --seed` |
+| güncelleme | `migrate --force` |
+
+Kipler: `none`, `migrate`, `migrate-seed`, `fresh-seed`. Bayrakla
+(`--migrate none`, `--no-migrate`) ya da `.cpanel-next.json` ile:
+
+```json
+{
+  "framework": "laravel",
+  "laravel": {
+    "migrate": "none",
+    "firstMigrate": "fresh-seed",
+    "vendor": "auto",
+    "forceDebugOff": true,
+    "optimize": true
+  }
+}
+```
+
+> `migrate:fresh` **bütün tabloları siler**. Onay ekranında kırmızı yazıyor ve
+> güncellemede asla varsayılan değil.
+
+Kurulumdan sonra sırayla: yazma izinleri → `storage:link` → migration →
+`optimize:clear` → `config:cache` → `route:cache` → `view:cache`.
+`route:cache` ve `view:cache` ölümcül değil — closure kullanan rotalarda
+`route:cache` hata verir ve bunun yayını engellemesi doğru olmaz.
+
+### Bilinmesi gerekenler
+
+- Belge kökü dolu ise (yayında bir WordPress, düz HTML site) **klasör adını
+  yazarak onay** isteniyor ve önce yedek alınıyor.
+- `composer.lock` **zorunlu**. Onsuz vendor kararı verilemez ve sürümler
+  yereldekinden kayabilir — Next tarafında tam olarak bu kayma, çerçevenin
+  içinde patlayan bir hataya yol açmıştı.
+- Domainin PHP sürümü cPanel'e soruluyor (`LangPHP`), artisan o sürümle
+  koşuyor. Hesabın varsayılan CLI'ı 7.4 olsa bile Laravel 11 doğru PHP'yi
+  buluyor.
+
+---
+
+## Veritabanı
+
+Veritabanı olmadan uygulama yayınlamak yarım bir iş. cPanel'de bunu bağlamak
+dört ekran sürüyor — *Create Database*, *Create User*, *Add User To Database*,
+yetki kutuları — ve sonunda bağlantı dizesini elle kuruyorsunuz.
+
+```bash
+deploymanager db create magaza --app-root magazanext --env-local
+```
+
+Bu tek komut veritabanını oluşturuyor, kullanıcıyı açıyor, o veritabanında tam
+yetki veriyor, şifre üretiyor ve
+
+```
+DATABASE_URL=mysql://kullanici:…@127.0.0.1:3306/hesap_magaza
+```
+
+satırını hem sunucudaki `.env` dosyasına hem de makinenizdeki `.env.local`
+dosyasına yazıyor. Web arayüzü aynısını tek düğmeyle yapıyor; ayrıca hesap için
+ve tek bir veritabanı için **phpMyAdmin** bağlantısı veriyor.
+
+```
+deploymanager db              veritabanları, boyutları ve kullanıcıları
+deploymanager db create <ad>  veritabanı + kullanıcı + yetki + DATABASE_URL
+deploymanager db drop <ad>    veritabanını sil (adını yazarak onay)
+deploymanager db users        MySQL kullanıcıları ve eriştikleri veritabanları
+deploymanager db pma [ad]     phpMyAdmin'i aç
+```
+
+Bilinmesi gerekenler:
+
+- **Önek varsayılmıyor, soruluyor.** Çoğu host her veritabanı ve kullanıcı adının
+  başına `<hesap>_` koyuyor, ama host öneklemeyi kapatabiliyor; o durumda cPanel
+  `prefix: null` döndürüyor. Bunu "cevap gelmedi" sanıp yine de `<hesap>_`
+  eklemek, kullanıcının cPanel'de bulamayacağı adlar üretmek demek.
+  Yetkili kaynak `Mysql::get_restrictions`.
+- **Şifre bir kez gösteriliyor.** Hiçbir yerde saklanmıyor — ne cPanel'de ne
+  bizde. Aynı ekranın `.env` dosyasına yazmayı önermesinin sebebi bu.
+- **Var olana dokunulmuyor.** Veritabanı zaten varsa içine karışılmıyor (veri
+  olabilir); kullanıcı zaten varsa şifresi *değiştirilmiyor*, çünkü onu başka
+  bir uygulama kullanıyor olabilir.
+- **Silmek adı yazmayı gerektiriyor.** Veritabanının yedeği ve geri alması yok,
+  yani kural klasörlerdekinden daha sıkı ve sunucuda denetleniyor.
+- **phpMyAdmin şifrenizi bu araçtan geçirmiyor.** API token'ından tarayıcıya
+  taşınabilir bir cPanel oturumu üretilemiyor; bu yüzden düğme cPanel'in kendi
+  giriş sayfasına `goto_uri` ile gidiyor. Zaten girişliyseniz doğrudan
+  phpMyAdmin açılıyor.
+
+`.env`, `.env.local`, `.env.production` ve `.env.production.local` artık
+deploy'lar arasında korunuyor. Bunlar pakete hiç girmiyor, yani oraya yazılan
+her şey aksi hâlde bir sonraki yayında silinirdi.
+
+---
+
 ## Yaşam döngüsü hook'ları
 
 `.cpanel-next.json` içinde tanımlıyorsunuz; bağımlılık kurulumunun çevresinde
@@ -165,10 +390,13 @@ sunucuda çalışıyorlar:
 ```
 
 Uygulamanın Node venv'i `PATH`'in başındayken çalışıyorlar, yani `npx` ve `node`
-doğru sürüme çözülüyor.
+doğru sürüme çözülüyor — **üç aşamada da**. Komut dizi yerine düz metin olarak da
+yazılabiliyor; bunun dışındaki bir değer karakter karakter döndürülmek yerine
+raporlanıp yok sayılıyor.
 
 > Hook'lar kabuk gerektiriyor, dolayısıyla CloudLinux'ta çalışıyor. Stok
-> cPanel'de kabuk yolu olmadığı için atlanıyorlar.
+> cPanel'de kabuk yolu olmadığı için atlanıyorlar — ve deploy kaydı bunu
+> çalışmayan komut sayısıyla birlikte yazıyor.
 
 ---
 
@@ -196,7 +424,7 @@ olan bir site gider. Buna karşı:
 ## Gereksinimler ve sınırlar
 
 - Yerelde Node.js 18.17+
-- Next.js App Router veya Pages Router
+- Next.js App Router veya Pages Router · Laravel 9+ (`artisan` + `composer.lock`)
 - Build **daima yerelde** koşuyor. CloudLinux süreç belleğini varsayılan 1 GB'a
   sınırlıyor ve CloudLinux'un kendi dokümanı `npm build`in orada OOM verdiğini
   yazıyor.
@@ -209,7 +437,6 @@ Henüz desteklenmiyor:
   ve Passenger `http.Server.listen() was called more than once` ile patlıyor
   (13.5.6+ temiz)
 - Alt yol mount (`basePath` build zamanında gömülüyor)
-- Laravel
 
 ### Build ile çalıştırma aynı sürümde olmalı
 

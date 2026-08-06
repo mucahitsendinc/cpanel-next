@@ -132,25 +132,54 @@ test('mevcut server.js tanınır', () => {
   assert.equal(detectProject(d).hasServerJs, true);
 });
 
-test('Laravel projesi faz 1 kapsamı dışı olarak bildirilir', () => {
+test('Laravel projesi tanınır ve yayınlanabilir', () => {
   const d = project({
-    'composer.json': '{"require":{"laravel/framework":"^11"}}',
+    'composer.json': '{"require":{"laravel/framework":"^11.9"}}',
+    'composer.lock': '{"packages":[]}',
     artisan: '',
+    'public/index.php': '<?php',
   });
   const r = detectProject(d);
   assert.equal(r.framework, 'laravel');
-  assert.equal(r.deployable, false);
+  assert.equal(r.laravelVersion, '11.9');
+  assert.equal(r.deployable, true);
+  // Laravel'i Passenger değil sunucunun PHP işleyicisi çalıştırıyor.
+  assert.equal(r.startupFile, null);
 });
 
-test('Laravel + Next bir arada belirsiz sayılır', () => {
+test('composer.lock yoksa Laravel yayınlanamaz', () => {
+  // Onsuz "lock değişmediyse vendor gönderme" kararı verilemez ve sunucudaki
+  // sürümler yereldekinden kayabilir.
   const d = project({
     'composer.json': '{"require":{"laravel/framework":"^11"}}',
     artisan: '',
-    'package.json': pkg({ dependencies: { next: '16.0.0' }, scripts: { build: 'next build' } }),
+    'public/index.php': '<?php',
   });
   const r = detectProject(d);
   assert.equal(r.deployable, false);
-  assert.match(r.blockers.join(' '), /ambiguous|both/i);
+  assert.match(r.blockers.join(' '), /composer\.lock/);
+});
+
+test('public/index.php yoksa Laravel sayılmaz', () => {
+  const d = project({ 'composer.json': '{}', 'composer.lock': '{}', artisan: '' });
+  assert.equal(detectProject(d).deployable, false);
+});
+
+test('package.json olan Laravel yine Laravel sayılır — Next değil', () => {
+  // Vite/Mix kullanan her Laravel projesinde package.json var; belirleyici
+  // olan `artisan` + `composer.json` ikilisi.
+  const d = project({
+    'composer.json': '{"require":{"laravel/framework":"^11"}}',
+    'composer.lock': '{}',
+    artisan: '',
+    'public/index.php': '<?php',
+    'vite.config.js': '',
+    'package.json': pkg({ devDependencies: { vite: '^5' }, scripts: { build: 'vite build' } }),
+  });
+  const r = detectProject(d);
+  assert.equal(r.framework, 'laravel');
+  assert.equal(r.assetBuilder, 'vite');
+  assert.match(r.warnings.join(' '), /public\/build|vite/);
 });
 
 test('lockfile yoksa uyarı verilir ama engellenmez', () => {
