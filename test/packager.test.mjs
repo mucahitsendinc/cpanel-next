@@ -319,12 +319,30 @@ test('masaüstü kabuğu lib/ ile aynı kaynağı kullanıyor', () => {
   const desktop = path.join(root, 'desktop');
   if (!fs.existsSync(desktop)) return; // masaüstü kabuğu bu kopyada yok
 
+  /*
+   * Masaüstü klasöründeki her `.mjs` dosyası KABUĞA ait olmalı: pencere,
+   * kopyalama ve imzalama denetimi. Buraya iş mantığı taşınırsa iki ön yüz
+   * ayrışmaya başlar — testin sorduğu şey bu.
+   */
   const own = fs.readdirSync(desktop).filter((f) => f.endsWith('.mjs'));
-  assert.deepEqual(own.sort(), ['main.mjs', 'sync.mjs']);
+  assert.deepEqual(own.sort(), ['main.mjs', 'signing-check.mjs', 'sync.mjs']);
 
   // `app-lib` türetilmiş: depoya girmemeli.
   const ignored = fs.readFileSync(path.join(desktop, '.gitignore'), 'utf8');
   assert.match(ignored, /app-lib/);
+
+  /*
+   * Sertleştirilmiş çalışma zamanı entitlements'ları ZORUNLU: V8 çalışma
+   * anında makine kodu üretiyor ve bu izinler olmadan notarize edilmiş
+   * uygulama açılır açılmaz çöküyor.
+   */
+  const ent = fs.readFileSync(path.join(desktop, 'build/entitlements.mac.plist'), 'utf8');
+  for (const key of ['allow-jit', 'allow-unsigned-executable-memory', 'disable-library-validation']) {
+    assert.match(ent, new RegExp(key), key);
+  }
+  const build = JSON.parse(fs.readFileSync(path.join(desktop, 'package.json'), 'utf8')).build;
+  assert.equal(build.mac.hardenedRuntime, true);
+  assert.equal(build.mac.notarize, true);
 });
 
 test('masaüstü paketi npm paketine girmiyor', () => {
