@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { planZip, buildExcludeMatcher, DEFAULT_EXCLUDES } from '../lib/packager.mjs';
+import { planZip, buildExcludeMatcher, DEFAULT_EXCLUDES , isBlockedDotDir, isToolDirectory} from '../lib/packager.mjs';
 
 /*
  * DOTENV SIZINTISI — bu dosyanın var olma sebebi.
@@ -216,4 +216,41 @@ test('package.json’ın diğer alanları korunuyor', () => {
   assert.equal(pkg.name, 'frontend');
   assert.equal(pkg.type, 'module');
   assert.equal(pkg.scripts.build, 'next build');
+});
+
+/* --------------------------------------------- araç klasörleri: ad değil kural */
+
+test('izin verilmeyen noktalı klasörler pakete girmiyor', () => {
+  // Ad listesi kapanmayan bir listeydi: her yeni araç kendi noktalı klasörünü
+  // bırakıyor ve listeye eklenene kadar sunucuya gidiyordu.
+  for (const name of ['.vscode', '.idea', '.git', '.turbo', '.vercel', '.github', '.yarn', '.nx']) {
+    assert.equal(isBlockedDotDir(name), true, name);
+  }
+});
+
+test('build çıktısı ve doğrulama klasörü İZİNLİ', () => {
+  // `.next` gitmezse uygulama çalışmaz; `.well-known` gitmezse alan doğrulama
+  // ve AutoSSL kırılır.
+  assert.equal(isBlockedDotDir('.next'), false);
+  assert.equal(isBlockedDotDir('.well-known'), false);
+});
+
+test('noktalı DOSYALAR elenmiyor', () => {
+  // Dosyalar bu kuraldan hiç geçmiyor; kural yalnızca dizin bileşenlerine
+  // uygulanıyor.
+  assert.equal(isToolDirectory('.htaccess'), false);
+  assert.equal(isToolDirectory('public/.htaccess'), false);
+  assert.equal(isToolDirectory('storage/logs/.gitignore'), false);
+});
+
+test('araç klasörünün ALTINDAKİ dosyalar da eleniyor', () => {
+  assert.equal(isToolDirectory('.vscode/settings.json'), true);
+  assert.equal(isToolDirectory('a/.idea/workspace.xml'), true);
+});
+
+test('.next altındaki derin yollar korunuyor', () => {
+  // Tam yola bakan ilk sürüm `.next/static`'i eledi ve build çıktısının
+  // yarısı pakete hiç girmedi.
+  assert.equal(isToolDirectory('.next/static/chunks/app.js'), false);
+  assert.equal(isToolDirectory('.next/server/pages/index.js'), false);
 });
