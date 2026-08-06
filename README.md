@@ -268,6 +268,25 @@ updated too.
 > `DB_PASSWORD` in every `.env` and takes every live application off its
 > database. Not something to do silently.
 
+### The master password
+
+Change it in Settings → General. Every secret in the vault (tokens and, if auto
+login is on, cPanel passwords) is re-sealed with the new key.
+
+The file is written **once**: a failure midway would leave a vault half
+encrypted with the old key and half with the new one, and that vault could
+never be opened again. If the current password is wrong, nothing is touched.
+
+### Where settings live
+
+Two different scopes, two different places:
+
+| | where |
+|---|---|
+| Language, default interface, **master password** | Settings tab |
+| Connection, token renewal, **cPanel password**, auto login, removing the account | the ⚙ next to the account picker in the header |
+| A new cPanel account | the **+** in the header |
+
 ---
 
 ## Laravel

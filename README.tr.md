@@ -265,6 +265,25 @@ olmazdı. Otomatik giriş açıksa kasadaki kopya da güncelleniyor.
 > `DB_PASSWORD` bir anda geçersiz oluyor ve yayındaki her uygulama
 > veritabanına bağlanamıyor. Sessizce yapılacak bir şey değil.
 
+### Ana şifre
+
+Ayarlar → Genel'den değiştirilebiliyor. Kasadaki her sır (token'lar ve —
+otomatik giriş açıksa — cPanel şifreleri) yeni anahtarla yeniden mühürleniyor.
+
+Dosya **tek seferde** yazılıyor: ortada bir hata olsaydı yarısı eski yarısı
+yeni anahtarla şifrelenmiş bir kasa kalırdı ve o kasa bir daha hiç açılamazdı.
+Eski şifre yanlışsa hiçbir şeye dokunulmuyor.
+
+### Ayarlar nerede
+
+İki farklı kapsam, iki farklı yer:
+
+| | nerede |
+|---|---|
+| Dil, varsayılan arayüz, **ana şifre** | Ayarlar sekmesi |
+| Bağlantı, token yenileme, **cPanel şifresi**, otomatik giriş, hesabı kaldırma | Başlıktaki hesap seçicinin yanındaki ⚙ |
+| Yeni cPanel hesabı | Başlıktaki **+** |
+
 ---
 
 ## Laravel

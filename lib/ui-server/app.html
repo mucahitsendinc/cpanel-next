@@ -328,7 +328,16 @@ const S = {
     currentPassword:'Mevcut şifre',newPassword:'Yeni şifre',newPasswordAgain:'Yeni şifre (tekrar)',
     passwordMismatch:'İki şifre aynı değil.',passwordChanged:'Şifre değiştirildi.',
     rollbackSection:'Geri alma noktaları',logsSection:'Sunucudaki çalıştırmalar',
-    openWebmail:'Webmail',subLabelHelp:'Yalnızca alt ad; domainin geri kalanı otomatik eklenir.'},
+    openWebmail:'Webmail',subLabelHelp:'Yalnızca alt ad; domainin geri kalanı otomatik eklenir.',
+    addAccount:'cPanel hesabı ekle',accountSettings:'Bu hesabın ayarları',
+    accountSettingsSub:'Yalnızca {name} hesabını ilgilendiren ayarlar.',
+    generalSettings:'Genel ayarlar',generalSettingsSub:'Araca ait ayarlar; hiçbir cPanel hesabına bağlı değil.',
+    masterPassword:'Ana şifre',
+    masterPasswordSub:'Bu aracın kasasını açan şifre — cPanel şifreniz değil. Değiştirince kayıtlı bütün token’lar ve şifreler yeni şifreyle yeniden mühürlenir.',
+    currentMaster:'Mevcut ana şifre',newMaster:'Yeni ana şifre',newMasterAgain:'Yeni ana şifre (tekrar)',
+    masterChanged:'Ana şifre değiştirildi ({count} kayıt yeniden mühürlendi).',
+    downloadsAt:'İndirilenler: ~/Downloads/cpanel-next',
+    backToAccount:'← Geri'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
     lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
@@ -484,7 +493,16 @@ const S = {
     currentPassword:'Current password',newPassword:'New password',newPasswordAgain:'New password (again)',
     passwordMismatch:'The two passwords do not match.',passwordChanged:'Password changed.',
     rollbackSection:'Restore points',logsSection:'Runs on the server',
-    openWebmail:'Webmail',subLabelHelp:'Just the label; the rest of the domain is added automatically.'}
+    openWebmail:'Webmail',subLabelHelp:'Just the label; the rest of the domain is added automatically.',
+    addAccount:'Add cPanel account',accountSettings:'This account’s settings',
+    accountSettingsSub:'Settings that concern only {name}.',
+    generalSettings:'General settings',generalSettingsSub:'Settings for the tool itself; not tied to any cPanel account.',
+    masterPassword:'Master password',
+    masterPasswordSub:'The password that opens this tool’s vault — not your cPanel password. Changing it re-seals every stored token and password with the new one.',
+    currentMaster:'Current master password',newMaster:'New master password',newMasterAgain:'New master password (again)',
+    masterChanged:'Master password changed ({count} entries re-sealed).',
+    downloadsAt:'Downloads: ~/Downloads/cpanel-next',
+    backToAccount:'← Back'}
 };
 const s = (k) => (S[LANG] || S.en)[k] ?? (S.en[k] ?? k);
 
@@ -668,8 +686,21 @@ function renderMain() {
     onclick: () => { ST.deploy = {}; ST.tab = 'deploy'; renderMain(); },
   }, '📁 ' + (ST.deploy.path ? ST.deploy.path.split('/').filter(Boolean).pop() : s('switchProject')));
 
+  /*
+   * Hesap eklemek ve HESABA ÖZGÜ ayarlar, hesap seçicinin YANINDA.
+   *
+   * İkisi de Ayarlar sekmesindeydi ve orada genel tercihlerle (dil, varsayılan
+   * arayüz, ana şifre) karışıyordu. Oysa bunlar farklı kapsamlar: biri "bu
+   * cPanel hesabı", diğeri "bu araç". Seçicinin yanında durunca hangi hesabı
+   * ilgilendirdikleri de kendiliğinden belli oluyor.
+   */
+  const addBtn = el('button', { title: s('addAccount'), onclick: () => { ST.tab = 'account'; ST.newAccount = true; renderMain(); } }, '+');
+  const gearBtn = ST.profile
+    ? el('button', { title: s('accountSettings'), onclick: () => { ST.tab = 'account'; ST.newAccount = false; renderMain(); } }, '⚙')
+    : null;
+
   app.append(el('header', {},
-    el('span', { class: 'brand' }, 'cpanel-next'), sel,
+    el('span', { class: 'brand' }, 'cpanel-next'), sel, addBtn, gearBtn,
     el('span', { class: 'spacer' }), projBtn, el('span', { class: 'spacer' }), langBtn,
     el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock')),
     el('button', { onclick: async () => {
@@ -682,6 +713,18 @@ function renderMain() {
     } }, s('backToTerminal'))));
 
   const main = el('main', {});
+
+  /*
+   * "Hesap" bir SEKME DEĞİL: başlıktaki düğmelerden açılıyor ve sekme
+   * şeridini kirletmiyor. Sekiz sekme, yedi sekmeden daha iyi değil.
+   */
+  if (ST.tab === 'account') {
+    const body = el('div', {});
+    main.append(body);
+    app.append(main);
+    viewAccount(body);
+    return;
+  }
   /*
    * Sekmeler ALANLARA göre, işlemlere göre değil.
    *
@@ -2159,63 +2202,79 @@ function renderAddProfile(root, { autofocus = false, askMaster = false, onDone =
 }
 
 /* ------------------------------------------------------------- settings */
-async function viewSettings(root) {
+/**
+ * HESAP ayarları — yalnızca seçili cPanel hesabını ilgilendirenler.
+ *
+ * Bunlar Ayarlar sekmesindeydi ve orada dil/varsayılan arayüz gibi ARACA ait
+ * tercihlerle karışıyordu. Farklı kapsamlar: biri "bu cPanel hesabı",
+ * diğeri "bu araç". Başlıktaki hesap seçicinin yanından açılınca hangi hesabı
+ * ilgilendirdiği de kendiliğinden belli oluyor.
+ */
+async function viewAccount(root) {
   clear(root);
 
-  /* --- hesaplar --- */
-  const card = el('div', { class: 'card' }, el('h2', {}, s('profiles')));
-  if (!ST.profiles.length) {
-    card.append(el('p', { class: 'sub' }, s('noProfilesYet')));
-  } else {
-    const removeProfileRow = (p) => {
-      const btn = el('button', {}, s('remove'));
-      btn.addEventListener('click', async () => {
-        if (!confirm(s('removeConfirm').replace('{name}', p.name))) return;
-        btn.disabled = true;
-        try {
-          const r = await api('profiles/' + encodeURIComponent(p.name), { method: 'DELETE' });
-          ST.profiles = r.profiles;
-          if (ST.profile === p.name) ST.profile = r.profiles[0]?.name ?? null;
-          ST.overview = null;
-          renderMain();
-        } catch (err) {
-          btn.disabled = false;
-          alert(err.message);
-        }
-      });
-      const editBtn = el('button', {}, s('edit'));
-      const testBtn = el('button', {}, s('testConn'));
-      const out = el('div', {});
+  const back = el('button', { onclick: () => { ST.tab = 'overview'; renderMain(); } }, s('backToAccount'));
 
-      editBtn.addEventListener('click', () => renderEditProfile(out, p));
-      testBtn.addEventListener('click', async () => {
-        testBtn.disabled = true;
-        clear(out);
-        try {
-          const r = await post('profiles/' + encodeURIComponent(p.name) + '/test');
-          out.append(el('div', { class: 'msg ' + (r.ok ? 'info' : 'err') },
-            r.ok
-              ? el('span', {}, '✓ ' + s('connOk').replace('{user}', r.user)
-                  + (r.domain ? ' · ' + r.domain : ''))
-              : el('span', {}, '✕ ' + s('connBad') + ' — ' + r.error)));
-          if (!r.ok) renderEditProfile(out, p, { focusPassword: true });
-        } catch (err) { showError(out, err); }
-        testBtn.disabled = false;
-      });
-
-      return el('tr', {},
-        el('td', {},
-          el('div', { class: 'mono' }, p.user + '@' + p.host + ':' + p.port),
-          el('div', { class: 'muted', style: 'font-size:11.5px' },
-            (p.tokenName || s('none')),
-            p.hasPassword ? el('span', { class: 'pill ok', style: 'margin-left:8px' }, '⚡ ' + s('autoLoginOn')) : null),
-          out),
-        el('td', { style: 'text-align:right;white-space:nowrap' },
-          el('div', { class: 'row', style: 'justify-content:flex-end' }, testBtn, editBtn, btn)));
-    };
-    card.append(el('table', {}, el('tbody', {}, ...ST.profiles.map(removeProfileRow))));
+  if (ST.newAccount || !ST.profile) {
+    root.append(el('div', { class: 'row', style: 'margin-bottom:14px' }, back));
+    renderAddProfile(root, { autofocus: true, onDone: () => { ST.tab = 'overview'; renderMain(); } });
+    return;
   }
-  root.append(card);
+
+  const p = ST.profiles.find((x) => x.name === ST.profile);
+  if (!p) { ST.tab = 'overview'; return renderMain(); }
+
+  root.append(el('div', { class: 'row', style: 'margin-bottom:14px' },
+    back,
+    el('span', { class: 'muted mono' }, p.user + '@' + p.host + ':' + p.port)));
+
+  /* --- bağlantı --- */
+  const out = el('div', {});
+  const testBtn = el('button', {}, s('testConn'));
+  testBtn.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    clear(out);
+    try {
+      const r = await post('profiles/' + encodeURIComponent(p.name) + '/test');
+      out.append(el('div', { class: 'msg ' + (r.ok ? 'info' : 'err') },
+        r.ok
+          ? el('span', {}, '✓ ' + s('connOk').replace('{user}', r.user) + (r.domain ? ' · ' + r.domain : ''))
+          : el('span', {}, '✕ ' + s('connBad') + ' — ' + r.error)));
+      if (!r.ok) renderEditProfile(out, p, { focusPassword: true });
+    } catch (err) { showError(out, err); }
+    testBtn.disabled = false;
+  });
+
+  const removeBtn = el('button', { class: 'danger' }, s('remove'));
+  removeBtn.addEventListener('click', async () => {
+    if (!confirm(s('removeConfirm').replace('{name}', p.name))) return;
+    removeBtn.disabled = true;
+    try {
+      const r = await api('profiles/' + encodeURIComponent(p.name), { method: 'DELETE' });
+      ST.profiles = r.profiles;
+      ST.profile = r.profiles[0]?.name ?? null;
+      ST.overview = null;
+      ST.tab = 'overview';
+      renderMain();
+    } catch (err) { removeBtn.disabled = false; showError(out, err); }
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('accountSettings')),
+      el('p', {}, s('accountSettingsSub').replace('{name}', p.name))),
+    el('dl', { class: 'kv' },
+      el('dt', {}, s('host')), el('dd', { class: 'mono' }, p.host + ':' + p.port),
+      el('dt', {}, s('user')), el('dd', { class: 'mono' }, p.user),
+      el('dt', {}, 'token'), el('dd', { class: 'muted mono' }, p.tokenName || s('none')),
+      el('dt', {}, s('autoLoginOn')), el('dd', {},
+        p.hasPassword ? el('span', { class: 'pill ok' }, '⚡') : el('span', { class: 'pill' }, s('none')))),
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      testBtn,
+      el('button', { onclick: () => renderEditProfile(out, p) }, s('edit')),
+      el('span', { style: 'flex:1' }),
+      removeBtn),
+    out));
 
   /* --- cPanel şifresi --- */
   /*
@@ -2223,44 +2282,82 @@ async function viewSettings(root) {
    * kasası açık bir arayüzün, kullanıcının onayı olmadan cPanel şifresini
    * değiştirebilmesi doğru olmazdı.
    */
-  if (ST.profile) {
-    const oldP = el('input', { type: 'password' });
-    const newP = el('input', { type: 'password' });
-    const newP2 = el('input', { type: 'password' });
-    const pwOut = el('div', {});
-    const pwBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('changePassword'));
+  const oldP = el('input', { type: 'password' });
+  const newP = el('input', { type: 'password' });
+  const newP2 = el('input', { type: 'password' });
+  const pwOut = el('div', {});
+  const pwBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('changePassword'));
 
-    pwBtn.addEventListener('click', async () => {
-      clear(pwOut);
-      if (newP.value !== newP2.value) {
-        return showError(pwOut, new Error(s('passwordMismatch')));
-      }
-      pwBtn.disabled = true;
+  pwBtn.addEventListener('click', async () => {
+    clear(pwOut);
+    if (newP.value !== newP2.value) return showError(pwOut, new Error(s('passwordMismatch')));
+    pwBtn.disabled = true;
+    try {
+      await post('account-password', {
+        profile: ST.profile, oldPassword: oldP.value, newPassword: newP.value });
+      oldP.value = newP.value = newP2.value = '';
+      pwOut.append(el('div', { class: 'msg info' }, s('passwordChanged')));
+      const st = await api('status');
+      ST.profiles = st.profiles;
+    } catch (err) { showError(pwOut, err); }
+    pwBtn.disabled = false;
+  });
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('changePassword')),
+      el('p', {}, s('changePasswordSub'))),
+    el('label', {}, s('currentPassword')), oldP,
+    el('div', { class: 'grid2' },
+      el('div', {}, el('label', {}, s('newPassword')), newP),
+      el('div', {}, el('label', {}, s('newPasswordAgain')), newP2)),
+    pwBtn, pwOut));
+}
+
+/**
+ * GENEL ayarlar — araca ait, hiçbir cPanel hesabına bağlı değil.
+ */
+async function viewSettings(root) {
+  clear(root);
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('generalSettings')),
+      el('p', {}, s('generalSettingsSub'))),
+    el('p', { class: 'help' }, s('downloadsAt'))));
+
+  /* --- ana şifre --- */
+  {
+    const oldM = el('input', { type: 'password' });
+    const newM = el('input', { type: 'password' });
+    const newM2 = el('input', { type: 'password' });
+    const mOut = el('div', {});
+    const mBtn = el('button', { class: 'primary', style: 'margin-top:14px' }, s('changePassword'));
+
+    mBtn.addEventListener('click', async () => {
+      clear(mOut);
+      if (newM.value !== newM2.value) return showError(mOut, new Error(s('passwordMismatch')));
+      mBtn.disabled = true;
       try {
-        await post('account-password', {
-          profile: ST.profile, oldPassword: oldP.value, newPassword: newP.value });
-        oldP.value = newP.value = newP2.value = '';
-        pwOut.append(el('div', { class: 'msg info' }, s('passwordChanged')));
-        // Kasadaki kopya sunucuda güncellendi; profil listesini tazeliyoruz.
-        const st = await api('status');
-        ST.profiles = st.profiles;
-      } catch (err) { showError(pwOut, err); }
-      pwBtn.disabled = false;
+        const r = await post('master-password', {
+          oldPassword: oldM.value, newPassword: newM.value });
+        oldM.value = newM.value = newM2.value = '';
+        mOut.append(el('div', { class: 'msg info' },
+          s('masterChanged').replace('{count}', r.resealed)));
+      } catch (err) { showError(mOut, err); }
+      mBtn.disabled = false;
     });
 
     root.append(el('div', { class: 'card' },
       el('div', { class: 'sec' },
-        el('h2', {}, s('changePassword')),
-        el('p', {}, s('changePasswordSub'))),
-      el('label', {}, s('currentPassword')), oldP,
+        el('h2', {}, s('masterPassword')),
+        el('p', {}, s('masterPasswordSub'))),
+      el('label', {}, s('currentMaster')), oldM,
       el('div', { class: 'grid2' },
-        el('div', {}, el('label', {}, s('newPassword')), newP),
-        el('div', {}, el('label', {}, s('newPasswordAgain')), newP2)),
-      pwBtn, pwOut));
+        el('div', {}, el('label', {}, s('newMaster')), newM),
+        el('div', {}, el('label', {}, s('newMasterAgain')), newM2)),
+      mBtn, mOut));
   }
-
-  /* --- hesap ekle --- */
-  renderAddProfile(root, {});
 
   /* --- tercihler --- */
   let prefs = {};
