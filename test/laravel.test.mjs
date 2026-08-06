@@ -202,14 +202,27 @@ test('var olan APP_URL güncellemede EZİLMİYOR', () => {
   assert.equal(p.APP_URL, undefined);
 });
 
-test('veritabanı bilgileri yazılıyor, localhost 127.0.0.1 oluyor', () => {
+test('veritabanı bilgileri yazılıyor, localhost OLDUĞU GİBİ kalıyor', () => {
+  /*
+   * PHP'de `localhost` özel bir değer: unix soketi kullanılıyor ve cPanel
+   * sunucularında en güvenilir yol bu. `127.0.0.1` yazmak TCP'yi zorluyor ve
+   * MySQL yalnızca soketi dinliyorsa bağlantı hiç kurulamıyor.
+   *
+   * Node/Prisma tarafında (`buildDatabaseUrl`) durum tam tersi ve orada
+   * çeviri bilerek yapılıyor — aynı görünen iki alanın doğru cevabı farklı.
+   */
   const p = buildEnvPatch({
     db: { host: 'localhost', port: 3306, database: 'u_shop', user: 'u_shop', password: 'x' },
   });
   assert.equal(p.DB_CONNECTION, 'mysql');
-  assert.equal(p.DB_HOST, '127.0.0.1');
+  assert.equal(p.DB_HOST, 'localhost');
   assert.equal(p.DB_DATABASE, 'u_shop');
   assert.equal(p.DB_PASSWORD, 'x');
+});
+
+test('uzak MySQL adresi de olduğu gibi yazılıyor', () => {
+  assert.equal(buildEnvPatch({ db: { host: 'mysql.remote.tld', database: 'd', user: 'u' } }).DB_HOST,
+    'mysql.remote.tld');
 });
 
 test('şifresi bilinmeyen kullanıcıda DB_PASSWORD yazılmıyor', () => {
@@ -264,9 +277,20 @@ test('storage/app/public da açılıyor — storage:link onu bekliyor', () => {
   assert.match(artisanPlan({}).find((x) => /mkdir/.test(x.cmd)).cmd, /storage\/app\/public/);
 });
 
-test('önbellek önce temizlenip sonra kuruluyor', () => {
-  const labels = artisanPlan({ optimize: true }).map((s) => s.label);
+test('önbellek MIGRATION’DAN ÖNCE temizleniyor', () => {
+  /*
+   * `config:cache` bir kez koştuysa Laravel `.env`'i artık okumuyor. Biz
+   * `.env`'e taze veritabanı bilgilerini yazıp migration'ı çalıştırıyoruz;
+   * eski bir önbellek varsa migration eski bilgilerle bağlanmaya çalışır ve
+   * hata veritabanından gelir — kullanıcıyı tamamen yanlış yere baktırır.
+   */
+  const labels = artisanPlan({ optimize: true, migrate: 'migrate' }).map((s) => s.label);
+  assert.ok(labels.indexOf('config:clear') < labels.indexOf('migrate'));
   assert.ok(labels.indexOf('config:clear') < labels.indexOf('config:cache'));
+});
+
+test('temizleme migration kapalıyken de yapılıyor', () => {
+  assert.ok(artisanPlan({ migrate: 'none' }).some((x) => x.label === 'config:clear'));
 });
 
 test('route:cache ölümcül değil — closure rotalarında patlıyor', () => {

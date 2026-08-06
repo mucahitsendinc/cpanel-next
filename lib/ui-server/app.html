@@ -1673,6 +1673,8 @@ function renderJob(out, jobId, onDone) {
       });
     } else if (e.type === 'failed') {
       line('e', '✗ ' + (e.text || s('failed')));
+      // Sunucudaki komutun kendi çıktısı: hatanın SEBEBİNİ söyleyen tek yer.
+      if (e.hint) for (const l of String(e.hint).split('\n')) line('e', '  ' + l);
       clear(head); head.append(el('span', { class: 'pill bad' }, s('failed')));
       es.close();
     }
