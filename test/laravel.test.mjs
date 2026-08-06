@@ -274,8 +274,62 @@ test('dizinler HER artisan komutundan önce açılıyor', () => {
 });
 
 test('storage/app/public da açılıyor — storage:link onu bekliyor', () => {
-  assert.match(artisanPlan({}).find((x) => /mkdir/.test(x.cmd)).cmd, /storage\/app\/public/);
+  assert.match(permStep().cmd, /storage\/app\/public/);
 });
+
+test('dosya tabanlı önbelleğin yazdığı data dizini de açılıyor', () => {
+  // `storage/framework/cache` yeterli değil; önbellek doğrudan `data`ya yazıyor.
+  assert.match(permStep().cmd, /storage\/framework\/cache\/data/);
+});
+
+test('paketten çıkan dosyaların izinleri düzeltiliyor', () => {
+  /*
+   * Zip kendi kip bitlerini taşıyor ve bunlar yerel umask'a göre değişiyor;
+   * sunucuda 600 ile açılan bir dosya web sunucusu tarafından okunamıyor ve
+   * site 403 veriyor.
+   */
+  const cmd = permStep().cmd;
+  assert.match(cmd, /find \. -type d -exec chmod 755/);
+  assert.match(cmd, /find \. -type f -exec chmod 644/);
+});
+
+test('chmod toplu çağrılıyor — dosya başına süreç açılmıyor', () => {
+  // 8000 dosyalık bir projede `-exec … \;` sekiz bin süreç demek.
+  const cmd = permStep().cmd;
+  assert.match(cmd, /-exec chmod 755 \{\} \+/);
+  assert.doesNotMatch(cmd, /-exec chmod \d+ \{\} \\;/);
+});
+
+test('Laravel’in yazdığı ağaçlar 775', () => {
+  assert.match(permStep().cmd, /chmod -R 775 storage bootstrap\/cache/);
+});
+
+test('.env yalnızca sahibine okunur', () => {
+  // Bu dosyada veritabanı şifresi ve APP_KEY var ve bizim topolojimizde
+  // belge kökünün ALTINDA duruyor.
+  assert.match(permStep().cmd, /chmod 600 \.env/);
+});
+
+test('hoşgörülü adımlar zinciri KURTARMIYOR', () => {
+  /*
+   * ⚠ İlk hâli `… || true` yazıyordu ve `&&` zinciri sola bağlandığı için o
+   * `|| true` zincirin TAMAMINI kurtarıyordu: kritik `chmod 775` başarısız
+   * olsa bile adım başarılı sayılırdı. Süslü parantez her hoşgörülü parçayı
+   * kendi içinde kapatıyor.
+   */
+  const cmd = permStep().cmd;
+  // Her hoşgörülü parça kendi süslü parantezi içinde kapanıyor.
+  assert.equal((cmd.match(/\|\| :; \}/g) || []).length, 3);
+  // Zincirin sonunda ZİNCİRİ KURTARAN çıplak bir `|| true` kalmamalı.
+  assert.doesNotMatch(cmd, /\|\| true/);
+  // Kritik komutlar süslü parantez DIŞINDA, yani başarısızlıkları zinciri kırıyor.
+  assert.match(cmd, /&& chmod -R 775 storage bootstrap\/cache &&/);
+});
+
+/** İzin adımı — birçok test buna bakıyor. */
+function permStep() {
+  return artisanPlan({}).find((x) => /mkdir/.test(x.cmd));
+}
 
 test('önbellek MIGRATION’DAN ÖNCE temizleniyor', () => {
   /*

@@ -373,6 +373,29 @@ If the server has no `.env` at all it is created from `.env.example` and an
 `server` is not the default: composer is memory hungry and OOM under
 CloudLinux's default 1 GB LVE limit is a real outcome.
 
+### Permissions
+
+Set from the shell on the server during install:
+
+| | |
+|---|---|
+| Directories | `755` |
+| Files | `644` |
+| `storage`, `bootstrap/cache` | `775` |
+| `.env` | `600` |
+
+Why it is needed: a zip carries its own mode bits and those depend on the umask
+on *your* machine. A file extracted as `600` on the server cannot be read by
+the web server and the site returns 403.
+
+The document root itself is set to `755` — Apache **suEXEC** refuses to serve a
+group- or world-writable document root, so leaving it at `775` would take the
+site down with a 500.
+
+`.env` at `600` is a second line of defence: in this topology the file sits
+under the document root and `.htaccess` hides it — but we do not rely on a
+single defence.
+
 ### Migrations
 
 | | default |

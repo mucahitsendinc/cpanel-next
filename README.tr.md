@@ -369,6 +369,28 @@ yalnızca `public/build` çıktısı gidiyor.
 `server` kipi varsayılan değil: composer bellek canavarı ve CloudLinux'un
 varsayılan 1 GB LVE sınırında OOM riski gerçek.
 
+### İzinler
+
+Kurulum sırasında sunucuda kabuktan ayarlanıyor:
+
+| | |
+|---|---|
+| Dizinler | `755` |
+| Dosyalar | `644` |
+| `storage`, `bootstrap/cache` | `775` |
+| `.env` | `600` |
+
+Neden gerekiyor: zip arşivi kendi kip bitlerini taşıyor ve bunlar sizin
+makinenizdeki umask'a göre değişiyor. Sunucuda `600` ile açılan bir dosya web
+sunucusu tarafından okunamıyor ve site 403 veriyor.
+
+Belge kökünün kendisi de `755` yapılıyor — Apache **suEXEC**, grup ya da
+herkese yazılabilir bir belge kökünü servis etmeyi reddediyor ve `775`
+bırakmak siteyi 500'e düşürürdü.
+
+`.env`'in `600` olması ikinci savunma: dosya bizim topolojimizde belge kökünün
+altında duruyor ve `.htaccess` onu gizliyor, ama tek savunmaya güvenmiyoruz.
+
 ### Migration
 
 | | varsayılan |
