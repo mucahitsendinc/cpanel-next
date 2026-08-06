@@ -802,7 +802,8 @@ async function viewOverview(root, refresh) {
         el('h2', {}, s('apps')), el('p', {}, s('appsSub'))),
       el('button', { onclick: reload }, s('refresh'))));
 
-  if (!o.apps.length) {
+  const sites = o.sites ?? [];
+  if (!o.apps.length && !sites.length) {
     appsCard.append(el('div', { class: 'empty' },
       el('div', { class: 'ico' }, '🚀'),
       el('h3', {}, s('noAppsTitle')),
@@ -811,6 +812,12 @@ async function viewOverview(root, refresh) {
         s('newDeploy'))));
   } else {
     for (const a of o.apps) appsCard.append(appCard(a, jobOut, reload));
+    /*
+     * Laravel siteleri AYRI geliyor: `listApps` Node.js kayıt defterini
+     * okuyor ve Laravel'in orada bir kaydı yok. Panelde görünmedikleri için
+     * tek tuşla güncellenemiyorlardı.
+     */
+    for (const site of sites) appsCard.append(siteCard(site, jobOut, reload));
   }
   root.append(appsCard);
 
@@ -847,6 +854,57 @@ async function viewOverview(root, refresh) {
   // eklenmiyordu. Sonuç: düğmeye basınca devre dışı kalıyor ve HİÇBİR ŞEY
   // görünmüyordu.
   root.append(jobOut);
+}
+
+/**
+ * Laravel sitesi kartı.
+ *
+ * Node uygulamasından iki farkı var ve ikisi de PHP'nin doğasından:
+ *   · Başlat/durdur/yeniden başlat YOK — ortada yönetilen bir süreç yok,
+ *     isteği sunucunun kendi PHP işleyicisi karşılıyor.
+ *   · Durum noktası yok; "çalışıyor mu" sorusunun karşılığı sitenin kendisi.
+ */
+function siteCard(site, jobOut, reload) {
+  return el('div', { class: 'app' },
+    el('div', { class: 'top' },
+      el('span', { class: 'name' }, '🐘 ' + site.domain),
+      el('a', { href: 'https://' + site.domain, target: '_blank', rel: 'noreferrer' }, s('open')),
+      el('span', { class: 'pill' }, 'Laravel'),
+      el('span', { class: 'pill ok' }, s('mine'))),
+
+    el('div', { class: 'meta' },
+      el('span', {}, s('folder') + ': ', el('b', {}, '~/' + site.appRoot)),
+      site.ownerProject ? el('span', {}, s('linkedTo') + ': ', el('b', {}, site.ownerProject)) : null,
+      site.version ? el('span', {}, s('version') + ': ', el('b', {}, site.version)) : null),
+
+    el('div', { class: 'row' },
+      el('button', {
+        class: site.ownerProject ? 'primary' : '',
+        title: site.ownerProject || s('noLink'),
+        onclick: async (e) => {
+          if (!site.ownerProject && !ST.deploy.path) { alert(s('noLink')); return; }
+          e.target.disabled = true;
+          clear(jobOut);
+          try {
+            const r = await post('app-update', {
+              profile: ST.profile, appRoot: site.appRoot, domain: site.domain,
+              projectPath: ST.deploy.path || site.ownerProject,
+            });
+            renderJob(jobOut, r.jobId, reload);
+          } catch (err) { e.target.disabled = false; showError(jobOut, err); }
+        },
+      }, '⬆ ' + s('update')),
+      el('a', { href: cpanelUrl('files', { dir: site.appRoot }, site.filesUrl), target: '_blank', rel: 'noreferrer' },
+        el('button', {}, '📂 ' + s('appFiles'))),
+      el('button', { onclick: async (e) => {
+        e.target.disabled = true;
+        clear(jobOut);
+        try {
+          const r = await post('files-download', { profile: ST.profile, path: site.appRoot });
+          renderJob(jobOut, r.jobId);
+        } catch (err) { showError(jobOut, err); }
+        e.target.disabled = false;
+      } }, '⬇ ' + s('downloadFiles'))));
 }
 
 /** Tek bir uygulamanın kartı: durumu, adresi ve yapılabilecek her şey. */
