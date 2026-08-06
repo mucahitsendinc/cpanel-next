@@ -286,6 +286,50 @@ Eski şifre yanlışsa hiçbir şeye dokunulmuyor.
 
 ---
 
+## Masaüstü uygulaması
+
+```bash
+cd desktop
+npm install
+npm start          # geliştirme
+npm run build:mac  # .dmg üretir (win / linux de var)
+```
+
+Çift tıkla açılan, Uygulamalar klasöründe duran bir sürüm. Terminal
+gerekmiyor.
+
+**Kendi iş mantığı yok ve olmamalı.** `deploymanager ui` zaten 127.0.0.1'de
+bir sunucu açıp tarayıcıyı ona yönlendiriyordu; masaüstü sürümü aynı sunucuyu
+Electron'un ana sürecinde başlatıp bir pencerede gösteriyor. Arayüz, API'ler ve
+güvenlik katmanları birebir aynı — `lib/` tek kaynak olarak kalıyor, çünkü iki
+ön yüzün ayrışması birinde düzeltilen davranışın diğerinde kalması demek olurdu.
+
+Kabuğun kendine ait dört kararı var:
+
+- **Sayfa bir web sayfası olarak kalıyor.** `nodeIntegration` kapalı,
+  `contextIsolation` ve `sandbox` açık. Arayüzün sunucuyla konuşma yolu zaten
+  mevcut HTTP API'si ve o API oturum jetonu istiyor; masaüstü olduk diye o
+  katmanı atlamak, tarayıcıda olmayan bir saldırı yüzeyi açardı.
+- **Dış bağlantılar sistem tarayıcısında açılıyor** — phpMyAdmin, Dosya
+  Yöneticisi, cPanel, yayınlanan sitenin kendisi. Kullanıcının cPanel oturumu
+  kendi tarayıcısında yaşıyor; ayrıca uygulamayı bir tarayıcıya dönüştürüp geri
+  dönüş yolu bırakmamak gerekiyor.
+- **Menü var**, çünkü Electron'da menü yoksa Cmd+C / Cmd+V hiç çalışmıyor.
+  Şifre ve bağlantı dizesi kopyalanan bir araçta bu sessiz ama can sıkıcı bir
+  kusur olurdu.
+- **Pencere kapanınca uygulama da kapanıyor**, macOS'ta bile. Arka planda cPanel
+  token'ı tutan bir sunucu var; kullanıcının görmediği bir süreç onu bellekte
+  tutmaya devam etmemeli.
+
+> macOS'ta imzalanmamış bir uygulama Gatekeeper'a takılıyor: ilk açılışta sağ
+> tık → Aç gerekiyor. Düzgün dağıtım için Apple Developer hesabı ve
+> notarization gerekli — kod tarafında hazır, imza sizin hesabınızla yapılıyor.
+
+Masaüstü paketi npm paketine **girmiyor**: `files` alanı yalnızca `bin`, `lib`
+ve README'leri topluyor.
+
+---
+
 ## Laravel
 
 ```bash

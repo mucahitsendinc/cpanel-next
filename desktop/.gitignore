@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# sync.mjs tarafından üretiliyor — kaynak değil, türetilmiş dosya.
+app-lib/

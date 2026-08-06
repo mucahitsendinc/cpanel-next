@@ -289,6 +289,52 @@ Two different scopes, two different places:
 
 ---
 
+## Desktop app
+
+```bash
+cd desktop
+npm install
+npm start          # development
+npm run build:mac  # produces a .dmg (win / linux available too)
+```
+
+A double-clickable build that lives in your Applications folder. No terminal
+needed.
+
+**It has no logic of its own, and should not.** `deploymanager ui` already
+started a server on 127.0.0.1 and pointed the browser at it; the desktop build
+starts that same server inside Electron's main process and shows it in a
+window. The interface, the APIs and the security layers are identical — `lib/`
+stays the single source, because two diverging front-ends would mean a fix in
+one never reaching the other.
+
+The shell makes four decisions of its own:
+
+- **The page stays a web page.** `nodeIntegration` off, `contextIsolation` and
+  `sandbox` on. The interface already talks to the server over its HTTP API and
+  that API requires a session token; skipping that layer just because we are
+  now a desktop app would open an attack surface the browser build does not
+  have.
+- **External links open in the system browser** — phpMyAdmin, File Manager,
+  cPanel, the deployed site itself. The user's cPanel session lives in their
+  real browser, and turning the app into a browser with no way back would be
+  worse.
+- **There is a menu**, because without one Cmd+C / Cmd+V simply do not work in
+  Electron. In a tool where you copy passwords and connection strings that
+  would be a quiet but maddening defect.
+- **Closing the window quits the app**, even on macOS. A server holding a cPanel
+  token runs in the background; a process the user cannot see should not keep
+  it in memory.
+
+> An unsigned app trips Gatekeeper on macOS: the first launch needs right-click
+> → Open. Proper distribution needs an Apple Developer account and
+> notarization — the code side is ready, the signing is done with your account.
+
+The desktop package is **not** part of the npm package: the `files` field only
+collects `bin`, `lib` and the READMEs.
+
+---
+
 ## Laravel
 
 ```bash

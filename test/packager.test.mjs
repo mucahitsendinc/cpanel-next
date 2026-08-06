@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { planZip, buildExcludeMatcher, DEFAULT_EXCLUDES , isBlockedDotDir, isToolDirectory, buildProject, ensureDependencies } from '../lib/packager.mjs';
 
 /*
@@ -303,4 +304,32 @@ test('node_modules varsa kurulum çalıştırılmıyor', async () => {
 test('package.json yoksa kurulum denenmiyor', async () => {
   const d = tmpProject({ 'readme.md': '' });
   assert.equal(await ensureDependencies(d), false);
+});
+
+/* ------------------------------------------------ masaüstü paketi tutarlılığı */
+
+test('masaüstü kabuğu lib/ ile aynı kaynağı kullanıyor', () => {
+  /*
+   * Masaüstü sürümünün kendi iş mantığı YOK: `desktop/app-lib` her derlemede
+   * `lib/`den kopyalanıyor. Bu test, birinin diğerinden bağımsız yaşamaya
+   * başlamadığını — yani `desktop/` altında elle yazılmış bir sunucu kopyası
+   * olmadığını — kontrol ediyor.
+   */
+  const root = path.dirname(fileURLToPath(new URL('.', import.meta.url)));
+  const desktop = path.join(root, 'desktop');
+  if (!fs.existsSync(desktop)) return; // masaüstü kabuğu bu kopyada yok
+
+  const own = fs.readdirSync(desktop).filter((f) => f.endsWith('.mjs'));
+  assert.deepEqual(own.sort(), ['main.mjs', 'sync.mjs']);
+
+  // `app-lib` türetilmiş: depoya girmemeli.
+  const ignored = fs.readFileSync(path.join(desktop, '.gitignore'), 'utf8');
+  assert.match(ignored, /app-lib/);
+});
+
+test('masaüstü paketi npm paketine girmiyor', () => {
+  const root = path.dirname(fileURLToPath(new URL('.', import.meta.url)));
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  // `files` bir izin listesi; `desktop` orada olmamalı.
+  assert.equal(pkg.files.includes('desktop'), false);
 });

@@ -1,0 +1,66 @@
+{
+  "name": "cpanel-next-desktop",
+  "version": "0.5.2",
+  "private": true,
+  "description": "cpanel-next masaüstü kabuğu",
+  "author": "Mücahit Sendinç (https://muco.tr)",
+  "license": "MIT",
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "sync": "node sync.mjs",
+    "prestart": "node sync.mjs",
+    "start": "electron .",
+    "prebuild": "node sync.mjs",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "tr.muco.cpanel-next",
+    "productName": "cpanel-next",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.mjs",
+      "sync.mjs",
+      "package.json",
+      "app-lib/**",
+      "!dist/**"
+    ],
+    "extraResources": [],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    }
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "adm-zip": "^0.5.16",
+    "picocolors": "^1.1.1",
+    "playwright-core": "^1.56.0"
+  },
+  "optionalDependencies": {
+    "basic-ftp": "^5.0.5"
+  }
+}
