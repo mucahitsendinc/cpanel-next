@@ -123,3 +123,42 @@ test('yıkıcılık tanımı', () => {
   assert.equal(isDestructive({ dirExists: false, adopt: true }), true);
   assert.equal(isDestructive({ dirExists: false, force: true }), true);
 });
+
+/* ------------------------------------------------- Laravel'in belge kökü */
+
+test('Laravel için belge kökü çakışması ENGEL DEĞİL', () => {
+  /*
+   * Bu denetim Next.js için doğru: kaynak kodu yayına açılan bir dizine koymak
+   * `.env` dosyasını internete açar. Laravel'de ise uygulama belge kökünün
+   * İÇİNE kuruluyor ve `.htaccess` isteği `public/` altına yönlendiriyor —
+   * kaynak dizinleri URL'den erişilemez oluyor ve yayından sonra bu gerçekten
+   * ölçülüyor.
+   *
+   * Canlıda bu denetim bir Laravel güncellemesini reddetti; aracın kendi
+   * Laravel desteğini reddetmesi demekti.
+   */
+  const docroots = ['tests.example.com', 'public_html'];
+  assert.equal(
+    assertAppRoot('tests.example.com', { docroots, framework: 'laravel' }),
+    'tests.example.com'
+  );
+});
+
+test('Next.js için belge kökü çakışması HÂLÂ reddediliyor', () => {
+  // Laravel muafiyeti, denetimi genel olarak gevşetmemeli.
+  assert.throws(
+    () => assertAppRoot('tests.example.com', { docroots: ['tests.example.com'] }),
+    /belge kökü|document root/i
+  );
+  assert.throws(
+    () => assertAppRoot('tests.example.com', { docroots: ['tests.example.com'], framework: 'nextjs' }),
+    /belge kökü|document root/i
+  );
+});
+
+test('Laravel muafiyeti diğer denetimleri açmıyor', () => {
+  // Korumalı adlar, yol kaçışı ve gizli dizinler Laravel'de de yasak.
+  for (const bad of ['../../etc', '.ssh', 'mail', 'etc']) {
+    assert.throws(() => assertAppRoot(bad, { docroots: [], framework: 'laravel' }), undefined, bad);
+  }
+});

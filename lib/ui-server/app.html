@@ -191,6 +191,112 @@ body.shell-mac header input{ -webkit-app-region:no-drag }
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .toolbar a{text-decoration:none}
 .wide{max-width:720px}
+
+/* --------------------------------------------------------------------------
+ * Yeni kabuk: sakin bir çalışma alanı ve katmanlı gezinme.
+ *
+ * Birbirine eşit yedi sekme kullanıcıya yedi ayrı ürün varmış hissi veriyordu.
+ * Siteler günlük iş, hizmetler ise gerektiğinde açılan ikincil araçlar. Bu
+ * ayrımı yalnız renkle değil, yerleşim ve hiyerarşiyle de anlatıyoruz.
+ * ----------------------------------------------------------------------- */
+:root{
+  --bg:#0c1119;--panel:#131a24;--panel2:#18212d;--panel3:#202b39;
+  --line:#293647;--fg:#f2f5f9;--dim:#99a7b8;--accent:#5d9df5;
+  --accent-soft:rgba(93,157,245,.13);--ok:#43b98a;--warn:#e4ad54;--bad:#ef756f;
+  --danger-soft:rgba(239,117,111,.10);--radius:14px;
+  --shadow:0 1px 2px rgba(0,0,0,.22),0 16px 36px -28px rgba(0,0,0,.7);
+  --ring:0 0 0 3px rgba(93,157,245,.3);--sidebar:226px;
+}
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#f3f6f9;--panel:#fff;--panel2:#f7f9fb;--panel3:#eef3f7;
+    --line:#dce4ec;--fg:#172130;--dim:#657386;--accent:#236fc6;
+    --accent-soft:#e9f2fc;--ok:#147858;--warn:#976313;--bad:#bd403b;
+    --danger-soft:#fff0ef;--shadow:0 1px 2px rgba(19,33,52,.05),0 18px 42px -32px rgba(19,33,52,.32);
+  }
+}
+html{min-height:100%;background:var(--bg)}
+body{min-height:100vh;letter-spacing:.002em}
+button,input,select{min-height:40px}
+input[type="checkbox"]{min-height:auto;accent-color:var(--accent)}
+button{border-radius:10px;padding:8px 13px;background:var(--panel);box-shadow:0 1px 1px rgba(0,0,0,.04)}
+button:hover:not(:disabled){background:var(--panel3);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+button.primary{background:var(--accent);border-color:var(--accent);box-shadow:0 5px 15px -10px var(--accent)}
+button.primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 88%,#000);border-color:transparent}
+button.danger{color:var(--bad);background:var(--danger-soft);border-color:color-mix(in srgb,var(--bad) 44%,var(--line));box-shadow:none}
+button.danger:hover:not(:disabled){background:color-mix(in srgb,var(--danger-soft) 72%,var(--bad));border-color:var(--bad)}
+input,select{background:var(--panel);border-radius:10px;padding:9px 12px}
+label{margin-top:15px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.07em}
+header{
+  min-height:64px;padding:10px 18px;gap:10px;flex-wrap:nowrap;background:var(--panel);
+  backdrop-filter:none;box-shadow:0 1px 0 var(--line);position:sticky;top:0
+}
+header .brand{display:flex;align-items:center;gap:9px;min-width:var(--sidebar);font-size:15px;letter-spacing:-.025em}
+.brand-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;font-weight:800;font-size:13px}
+.header-account{display:flex;align-items:center;gap:7px;min-width:0}
+.header-account select{width:auto;min-width:205px;max-width:285px;background:var(--panel2)}
+.header-actions{display:flex;align-items:center;gap:7px}
+.project-chip{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.icon-button{width:40px;padding:0;display:grid;place-items:center;font-weight:700}
+.app-shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);max-width:1440px;margin:0 auto;min-height:calc(100vh - 64px)}
+.sidebar{padding:22px 14px 30px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:5px;min-width:0}
+.nav-caption{margin:14px 10px 5px;color:var(--dim);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.11em}
+.nav-item{width:100%;min-height:42px;display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid transparent;background:transparent;box-shadow:none;text-align:left;color:var(--dim);font-weight:600}
+.nav-item:hover:not(:disabled){background:var(--panel2);border-color:transparent;color:var(--fg)}
+.nav-item.on{color:var(--accent);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,transparent)}
+.nav-item svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-services{margin-top:5px}
+.nav-services summary{list-style:none;cursor:pointer}
+.nav-services summary::-webkit-details-marker{display:none}
+.nav-services summary::after{content:'›';margin-left:auto;font-size:18px;transition:transform .15s ease}
+.nav-services[open] summary::after{transform:rotate(90deg)}
+.nav-children{margin:3px 0 4px 17px;padding-left:10px;border-left:1px solid var(--line);display:grid;gap:3px}
+.nav-children .nav-item{min-height:38px;font-size:13px}
+.sidebar-bottom{margin-top:auto;padding-top:18px}
+.content{width:100%;max-width:1050px;margin:0 auto;padding:30px 34px 70px;min-width:0}
+.page-head{margin:0 0 22px}
+.page-head h1{font-size:25px;line-height:1.2;letter-spacing:-.035em;margin:0 0 6px}
+.page-head p{margin:0;color:var(--dim);font-size:13px}
+main{max-width:none;margin:0;padding:0}
+.card{padding:22px;margin-bottom:18px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.card h2,.sec h2{font-size:16px;letter-spacing:-.015em}
+.sec{margin-bottom:17px}.sec p,.card p.sub{font-size:13px;line-height:1.55}
+.tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.tile{min-height:112px;padding:16px;background:var(--panel2);border-radius:12px;box-shadow:none}
+.tile:hover{transform:none;background:var(--panel3);box-shadow:none}
+.tile .ico{font-size:19px}.tile b{font-size:13.5px}.tile span{font-size:12px}
+.app{padding:17px 18px;background:var(--panel2);border-radius:12px}
+.app .top{align-items:center}.app .name{font-size:15px}.app .meta{margin:10px 0 14px}
+.empty{padding:38px 22px;background:var(--panel2);border-style:solid}.empty .ico{font-size:25px}
+.steps{counter-reset:none;display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:2px 0 22px}
+.step{position:relative;justify-content:center;border:0;border-bottom:2px solid var(--line);border-radius:0;background:transparent;padding:10px 8px 13px}
+.step.on{border-color:var(--accent);color:var(--fg)}.step.done{border-color:var(--ok)}
+.step .n{width:21px;height:21px}.step.on .n{box-shadow:0 0 0 4px var(--accent-soft)}
+.advanced{margin:18px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden}
+.advanced summary{display:flex;align-items:center;gap:9px;padding:13px 15px;cursor:pointer;font-weight:650;color:var(--fg);list-style:none}
+.advanced summary::-webkit-details-marker{display:none}.advanced summary::before{content:'+';display:grid;place-items:center;width:20px;height:20px;border:1px solid var(--line);border-radius:6px;color:var(--dim)}
+.advanced[open] summary::before{content:'−'}.advanced-body{padding:2px 16px 16px;border-top:1px solid var(--line)}
+.danger-zone{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));background:var(--danger-soft)}
+.msg{border-radius:10px;padding:12px 14px}.msg.err{background:var(--danger-soft)}
+.log{border:1px solid #222b37;border-radius:10px}
+.browse{background:var(--panel2);border-radius:11px}.browse div{padding:10px 12px}
+table{font-size:13px}th{padding:9px 11px}td{padding:11px}
+.center{max-width:460px;margin:10vh auto;padding:0 18px}.center .card{padding:28px}
+.welcome-shell{max-width:920px;margin:0 auto;padding:8vh 24px 60px}
+.welcome-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+.welcome-intro{padding:31px}.welcome-intro .sec h2{font-size:27px!important;letter-spacing:-.04em}
+.howto{margin-top:25px!important}.howto li{padding-left:40px;margin-bottom:8px}.howto li::before{width:26px;height:26px;background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.tabs{display:none}
+@media(max-width:980px){.tiles{grid-template-columns:repeat(2,1fr)}.project-chip{max-width:190px}.header-account select{min-width:160px}}
+@media(max-width:760px){
+  header{flex-wrap:wrap;position:relative;padding:10px 14px}.header-account{order:3;width:100%}.header-account select{flex:1;max-width:none}
+  header .brand{min-width:0;margin-right:auto}.project-chip{display:none}.app-shell{display:block;min-height:0}
+  .sidebar{position:sticky;top:0;z-index:8;padding:8px 10px;flex-direction:row;overflow:auto;border-right:0;border-bottom:1px solid var(--line);background:var(--panel)}
+  .nav-caption,.nav-services,.sidebar-bottom{display:contents}.nav-item{width:auto;white-space:nowrap}.nav-item span{display:inline}
+  .nav-children{display:contents}.content{padding:24px 16px 55px}.welcome-grid{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}
+  table{display:block;overflow-x:auto;white-space:nowrap}.steps{font-size:11px}.step{padding-inline:3px}
+}
+@media(max-width:480px){.tiles{grid-template-columns:1fr}.header-actions button:not(.icon-button){display:none}.content{padding-inline:12px}.card{padding:17px}.page-head h1{font-size:22px}}
 </style>
 </head>
 <body>
@@ -202,7 +308,7 @@ let LANG = '__LANG__';
 
 const S = {
   tr:{unlock:'Kasayı aç',master:'Ana şifre',masterHint:'cPanel token\'ınız bu şifreyle şifrelendi. Şifre hiçbir yerde saklanmaz.',
-    lock:'Kilitle',overview:'Genel bakış',deploy:'Yayınla',backups:'Yedekler',logs:'Kayıtlar',
+    lock:'Kilitle',overview:'Sitelerim',deploy:'Yayınla',backups:'Yedekler',logs:'Kayıtlar',
     domains:'Domainler',apps:'Node.js uygulamaları',domain:'Domain',type:'Tür',docroot:'Belge kökü',
     app:'Uygulama',node:'Node',status:'Durum',folder:'Klasör',owner:'Sahip',actions:'İşlemler',
     start:'Başlat',stop:'Durdur',restart:'Yeniden başlat',none:'—',running:'çalışıyor',stopped:'durdu',
@@ -221,7 +327,7 @@ const S = {
     refresh:'Yenile',blockers:'Yayınlanamaz',open:'Aç',noProject:'Önce bir proje seçin.',
     quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…',
     backToTerminal:'Terminale dön',jobRunning:'İş sürüyor — kapatmak onu durdurmaz, ama pencereyi açık tutmak ilerlemeyi görmenizi sağlar.',
-    closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.',
+    closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.',jobStarted:'Sunucu işi başladı: {id}',
     settings:'Ayarlar',profiles:'cPanel hesapları',addProfile:'Hesap ekle',remove:'Sil',
     host:'Sunucu',user:'Kullanıcı adı',password:'cPanel şifresi',port:'Port',
     add:'Ekle',uiMode:'Varsayılan arayüz',uiWeb:'Web arayüzü',uiTerminal:'Terminal',
@@ -328,12 +434,15 @@ const S = {
     storePasswordHint:'phpMyAdmin ve Dosya Yöneticisi tek tıkla, şifre sormadan açılır. Şifre ana şifrenizle AES-256-GCM ile şifrelenip 0600 izinli dosyada saklanır. Kapatırsanız bu ekranlar cPanel giriş sayfasına yönlendirir.',
     autoLoginOn:'otomatik giriş',
     autoLoginNote:'Bu bağlantılar cPanel’e sizin adınıza giriş yapar ve doğrudan hedefe götürür. Şifre yalnızca tarayıcınızdan cPanel’e gider; başka hiçbir yere gönderilmez.',
-    mail:'E-posta',ftp:'FTP',history:'Geçmiş',
+    mail:'E-posta',ftp:'FTP',history:'Geçmiş',navigation:'Ana gezinme',
+    sitesGroup:'Siteler',services:'Hizmetler',toolGroup:'Araç',
+    advancedOptions:'Gelişmiş seçenekler',advancedOptionsSub:'Çoğu yayında bunları değiştirmeniz gerekmez.',
     tabMailSub:'E-posta hesapları, şifreler ve bağlantı ayarları',
     tabFtpSub:'FTP hesapları ve bağlantı bilgileri',
     tabHistorySub:'Geri alma noktaları ve sunucudaki çalıştırmalar',
     mailAccounts:'E-posta hesapları',mailAccountsSub:'Bu hesaptaki posta kutuları.',
     newMail:'Yeni e-posta hesabı',address:'Adres',quota:'Kota (MB)',quotaUnlimited:'sınırsız',
+    changeQuota:'Kotayı değiştir',quotaHelp:'0 sınırsız kota anlamına gelir.',
     used:'Kullanılan',noMail:'Henüz e-posta hesabı yok.',
     noMailBody:'Bir posta kutusu açtığınızda burada görünecek; şifresini değiştirebilir ve bağlantı ayarlarını görebilirsiniz.',
     noMailDomains:'Bu hesapta posta domaini yok.',
@@ -366,7 +475,7 @@ const S = {
     downloadsAt:'İndirilenler: ~/Downloads/cpanel-next',
     backToAccount:'← Geri'},
   en:{unlock:'Unlock',master:'Master password',masterHint:'Your cPanel token was encrypted with this password. It is never stored anywhere.',
-    lock:'Lock',overview:'Overview',deploy:'Deploy',backups:'Backups',logs:'Logs',
+    lock:'Lock',overview:'My sites',deploy:'Deploy',backups:'Backups',logs:'Logs',
     domains:'Domains',apps:'Node.js applications',domain:'Domain',type:'Type',docroot:'Document root',
     app:'Application',node:'Node',status:'Status',folder:'Folder',owner:'Owner',actions:'Actions',
     start:'Start',stop:'Stop',restart:'Restart',none:'—',running:'running',stopped:'stopped',
@@ -385,7 +494,7 @@ const S = {
     refresh:'Refresh',blockers:'Not deployable',open:'Open',noProject:'Pick a project first.',
     quota:'quota',regime:'Regime',account:'Account',working:'Working…',
     backToTerminal:'Back to terminal',jobRunning:'A job is running — closing will not stop it, but keeping this open lets you watch progress.',
-    closed:'You can close this window. Returned to the terminal.',
+    closed:'You can close this window. Returned to the terminal.',jobStarted:'Server job started: {id}',
     settings:'Settings',profiles:'cPanel accounts',addProfile:'Add account',remove:'Remove',
     host:'Server',user:'Username',password:'cPanel password',port:'Port',
     add:'Add',uiMode:'Default interface',uiWeb:'Web interface',uiTerminal:'Terminal',
@@ -492,12 +601,15 @@ const S = {
     storePasswordHint:'phpMyAdmin and File Manager then open in one click without asking for a password. It is encrypted with your master password (AES-256-GCM) in a 0600 file. With this off, those screens redirect to the cPanel login.',
     autoLoginOn:'auto login',
     autoLoginNote:'These links sign in to cPanel for you and land on the target. Your password only travels from your browser to cPanel; it is sent nowhere else.',
-    mail:'Email',ftp:'FTP',history:'History',
+    mail:'Email',ftp:'FTP',history:'History',navigation:'Main navigation',
+    sitesGroup:'Sites',services:'Services',toolGroup:'Tool',
+    advancedOptions:'Advanced options',advancedOptionsSub:'You do not need to change these for most deployments.',
     tabMailSub:'Email accounts, passwords and connection settings',
     tabFtpSub:'FTP accounts and connection details',
     tabHistorySub:'Restore points and recent runs on the server',
     mailAccounts:'Email accounts',mailAccountsSub:'The mailboxes on this account.',
     newMail:'New email account',address:'Address',quota:'Quota (MB)',quotaUnlimited:'unlimited',
+    changeQuota:'Change quota',quotaHelp:'0 means unlimited quota.',
     used:'Used',noMail:'No email accounts yet.',
     noMailBody:'Once you create a mailbox it appears here; you can change its password and see its connection settings.',
     noMailDomains:'This account has no mail domains.',
@@ -604,6 +716,22 @@ function cpanelUrl(target, params, fallback) {
   return '/sso?' + q.toString();
 }
 
+/** Simgeler metnin yerini tutmuyor; yalnızca gezinmeyi gözle taramayı hızlandırıyor. */
+function navIcon(name) {
+  const paths = {
+    overview: 'M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9 20v-6h6v6',
+    deploy: 'M12 3v12m0 0 5-5m-5 5-5-5M5 20h14',
+    database: 'M4 6c0 2 16 2 16 0s-16-2-16 0Zm0 0v6c0 2 16 2 16 0V6m0 6v6c0 2-16 2-16 0v-6',
+    mail: 'M3 5h18v14H3zM3 6l9 7 9-7',
+    ftp: 'M4 18h16M7 14l5-5 5 5M12 9v9M8 4h8',
+    history: 'M4 7v5h5M5 11a8 8 0 1 0 2-5M12 8v5l3 2',
+    settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-6 1 2.2 2.4.8 2.2-1 1.4 1.4-1 2.2.8 2.4L21 12l-2.2 1-.8 2.4 1 2.2-1.4 1.4-2.2-1-2.4.8L12 21l-1-2.2-2.4-.8-2.2 1L5 17.6l1-2.2-.8-2.4L3 12l2.2-1L6 8.6l-1-2.2L6.4 5l2.2 1 2.4-.8Z',
+    services: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+  };
+  return el('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+    el('path', { d: paths[name] || paths.overview }));
+}
+
 /* ---------------------------------------------------------------- render */
 async function boot() {
   /*
@@ -675,9 +803,10 @@ function renderUnlock(errMsg) {
  */
 function renderWelcome() {
   clear(app);
-  const main = el('main', { class: 'wide' });
+  const main = el('main', { class: 'welcome-shell' });
+  const grid = el('div', { class: 'welcome-grid' });
 
-  main.append(el('div', { class: 'card' },
+  grid.append(el('div', { class: 'card welcome-intro' },
     el('div', { class: 'sec' },
       el('h2', { style: 'font-size:20px' }, s('welcomeTitle')),
       el('p', {}, s('welcomeLead'))),
@@ -689,7 +818,8 @@ function renderWelcome() {
   // Hesap ekleme formunu ayarlardan taşımıyoruz, oraya YÖNLENDİRİYORUZ —
   // tek bir form, tek bir doğru yer.
   const box = el('div', {});
-  main.append(box);
+  grid.append(box);
+  main.append(grid);
   app.append(main);
   // İlk hesapta ana şifre de burada belirleniyor: kasa henüz yok.
   renderAddProfile(box, { autofocus: true, askMaster: true, onDone: () => boot() });
@@ -715,6 +845,7 @@ function renderMain() {
    * bilmek şart.
    */
   const projBtn = el('button', {
+    class: 'project-chip',
     style: 'max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
     title: ST.deploy.path || s('switchProject'),
     onclick: () => { ST.deploy = {}; ST.tab = 'deploy'; renderMain(); },
@@ -728,14 +859,16 @@ function renderMain() {
    * cPanel hesabı", diğeri "bu araç". Seçicinin yanında durunca hangi hesabı
    * ilgilendirdikleri de kendiliğinden belli oluyor.
    */
-  const addBtn = el('button', { title: s('addAccount'), onclick: () => { ST.tab = 'account'; ST.newAccount = true; renderMain(); } }, '+');
+  const addBtn = el('button', { class: 'icon-button', title: s('addAccount'), 'aria-label': s('addAccount'), onclick: () => { ST.tab = 'account'; ST.newAccount = true; renderMain(); } }, '+');
   const gearBtn = ST.profile
-    ? el('button', { title: s('accountSettings'), onclick: () => { ST.tab = 'account'; ST.newAccount = false; renderMain(); } }, '⚙')
+    ? el('button', { class: 'icon-button', title: s('accountSettings'), 'aria-label': s('accountSettings'), onclick: () => { ST.tab = 'account'; ST.newAccount = false; renderMain(); } }, '⚙')
     : null;
 
   app.append(el('header', {},
-    el('span', { class: 'brand' }, 'cpanel-next'), sel, addBtn, gearBtn,
-    el('span', { class: 'spacer' }), projBtn, el('span', { class: 'spacer' }), langBtn,
+    el('span', { class: 'brand' }, el('span', { class: 'brand-mark' }, 'cn'), el('span', {}, 'cpanel-next')),
+    el('div', { class: 'header-account' }, sel, addBtn, gearBtn),
+    el('span', { class: 'spacer' }), projBtn,
+    el('div', { class: 'header-actions' }, langBtn,
     el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock')),
     el('button', { onclick: async () => {
       const r = await post('exit');
@@ -744,46 +877,51 @@ function renderMain() {
       document.body.append(el('div', { class: 'center' },
         el('div', { class: 'card' }, el('h2', {}, 'cpanel-next'), el('p', { class: 'sub' }, s('closed')))));
       stopHeartbeat();
-    } }, s('backToTerminal'))));
-
-  const main = el('main', {});
+    } }, s('backToTerminal')))));
 
   /*
-   * "Hesap" bir SEKME DEĞİL: başlıktaki düğmelerden açılıyor ve sekme
-   * şeridini kirletmiyor. Sekiz sekme, yedi sekmeden daha iyi değil.
+   * Gezinme alanlara göre; veritabanı, e-posta ve FTP günlük akışın içine
+   * girmeyen "Hizmetler" altında. Böylece yedi eşit sekme yerine üç ana iş,
+   * bir hizmet grubu ve en altta araç ayarları var.
+   *
+   * TABS sabiti görünüm yönlendirmesinin tek doğruluk kaynağı olarak kalıyor;
+   * statik test de yeni bir ekran eklenip eşlemesi unutulmasını böyle yakalar.
    */
+  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'history', 'settings'];
+  const go = (k) => { ST.tab = k; renderMain(); };
+  const navItem = (k) => el('button', {
+    class: 'nav-item' + (ST.tab === k ? ' on' : ''),
+    'aria-current': ST.tab === k ? 'page' : null,
+    onclick: () => go(k),
+  }, navIcon(k), el('span', {}, s(k)));
+  const services = ['database', 'mail', 'ftp'];
+  const sidebar = el('aside', { class: 'sidebar', 'aria-label': s('navigation') },
+    el('div', { class: 'nav-caption' }, s('sitesGroup')),
+    navItem('overview'), navItem('deploy'), navItem('history'),
+    el('details', { class: 'nav-services', open: services.includes(ST.tab) ? 'true' : null },
+      el('summary', { class: 'nav-item' }, navIcon('services'), el('span', {}, s('services'))),
+      el('div', { class: 'nav-children' }, ...services.map(navItem))),
+    el('div', { class: 'sidebar-bottom' },
+      el('div', { class: 'nav-caption' }, s('toolGroup')),
+      navItem('settings')));
+
+  const main = el('main', { class: 'content' });
+  const body = el('div', {});
+  const titleKey = ST.tab === 'account' ? 'accountSettings' : ST.tab;
+  const subKey = ST.tab === 'account'
+    ? 'accountSettingsSub'
+    : 'tab' + ST.tab[0].toUpperCase() + ST.tab.slice(1) + 'Sub';
+  main.append(el('div', { class: 'page-head' },
+    el('h1', {}, s(titleKey)),
+    el('p', {}, ST.tab === 'account'
+      ? s(subKey).replace('{name}', ST.profile || '')
+      : s(subKey))), body);
+  app.append(el('div', { class: 'app-shell' }, sidebar, main));
+
   if (ST.tab === 'account') {
-    const body = el('div', {});
-    main.append(body);
-    app.append(main);
     viewAccount(body);
     return;
   }
-  /*
-   * Sekmeler ALANLARA göre, işlemlere göre değil.
-   *
-   * Eskiden "Yedekler" ve "Kayıtlar" ayrı iki sekmeydi; ikisi de "ne oldu,
-   * geri alabilir miyim" sorusunun parçası. Tek bir "Geçmiş" altında
-   * birleştirmek, e-posta ve FTP eklendikten sonra sekme sayısının
-   * yönetilebilir kalmasını sağlıyor.
-   */
-  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'history', 'settings'];
-  const tabs = el('div', { class: 'tabs' },
-    ...TABS.map((k) =>
-      el('button', {
-        class: ST.tab === k ? 'on' : '',
-        // Sekme adı tek başına ne olduğunu anlatmıyor; başlık ipucu ve altındaki
-        // satır bunu kapatıyor.
-        title: s('tab' + k[0].toUpperCase() + k.slice(1) + 'Sub'),
-        onclick: () => { ST.tab = k; renderMain(); },
-      }, s(k))));
-  main.append(tabs);
-  main.append(el('p', { class: 'help', style: 'margin:-8px 0 18px 4px' },
-    s('tab' + ST.tab[0].toUpperCase() + ST.tab.slice(1) + 'Sub')));
-
-  const body = el('div', {});
-  main.append(body);
-  app.append(main);
 
   ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, mail: viewMail,
      ftp: viewFtp, history: viewHistory, settings: viewSettings })[ST.tab](body);
@@ -915,18 +1053,23 @@ function siteCard(site, jobOut, reload) {
       el('button', {
         class: site.ownerProject ? 'primary' : '',
         title: site.ownerProject || s('noLink'),
-        onclick: async (e) => {
-          if (!site.ownerProject && !ST.deploy.path) { alert(s('noLink')); return; }
-          e.target.disabled = true;
-          clear(jobOut);
-          try {
-            const r = await post('app-update', {
-              profile: ST.profile, appRoot: site.appRoot, domain: site.domain,
-              projectPath: ST.deploy.path || site.ownerProject,
-            });
-            renderJob(jobOut, r.jobId, reload);
-          } catch (err) { e.target.disabled = false; showError(jobOut, err); }
-        },
+        /*
+         * ⚠ BAĞLI PROJE ÖNCE GELİR.
+         *
+         * İlk hâli `ST.deploy.path || site.ownerProject` yazıyordu: sihirbazda
+         * seçili olan proje, sitenin bağlı olduğu projeyi SESSİZCE eziyordu.
+         * Next.js projesi seçiliyken Laravel sitesinde "Güncelle"ye basmak,
+         * sunucuya Next.js projesini Laravel'in belge kökü ile göndermek
+         * demekti — sunucu Laravel dalını atlıyor ve "uygulama klasörü belge
+         * kökünden ayrı olmalı" hatasına düşüyordu.
+         *
+         * Daha kötüsü: eşleşen bir durumda YANLIŞ PROJEYİ o klasörün üstüne
+         * yazabilirdi. Node uygulamalarındaki `startUpdate` bunu zaten doğru
+         * yapıyor — farklıysa hangisi diye soruyor. Aynı işlevi kullanıyoruz.
+         */
+        onclick: () => startUpdate(jobOut, {
+          path: site.appRoot, domain: site.domain, ownerProject: site.ownerProject,
+        }, reload),
       }, '⬆ ' + s('update')),
       el('a', { href: cpanelUrl('files', { dir: site.appRoot }, site.filesUrl), target: '_blank', rel: 'noreferrer' },
         el('button', {}, '📂 ' + s('appFiles'))),
@@ -1356,14 +1499,17 @@ async function viewDeploy(root) {
     el('p', { class: 'help' }, s('domainHelp')), newSubBox,
     el('label', {}, s('appRoot')), rootIn,
     el('p', { class: 'help' }, s('appRootHelp')), hint,
-    el('label', {}, s('actions')),
-    el('div', {},
-      el('label', { style: 'margin:0 0 6px;text-transform:none;font-size:13px;color:var(--fg)' },
-        noBuild, ' ' + s('noBuild')),
-      el('p', { class: 'help', style: 'margin:0 0 10px 22px' }, s('noBuildHelp')),
-      el('label', { style: 'margin:0 0 6px;text-transform:none;font-size:13px;color:var(--fg)' },
-        adopt, ' ' + s('adopt')),
-      el('p', { class: 'help', style: 'margin:0 0 4px 22px' }, s('adoptHelp'))),
+    el('details', { class: 'advanced' },
+      el('summary', {},
+        el('span', {}, s('advancedOptions')),
+        el('span', { class: 'help', style: 'margin-left:auto' }, s('advancedOptionsSub'))),
+      el('div', { class: 'advanced-body' },
+        el('label', { style: 'text-transform:none;font-size:13px;color:var(--fg)' },
+          noBuild, ' ' + s('noBuild')),
+        el('p', { class: 'help', style: 'margin:0 0 10px 22px' }, s('noBuildHelp')),
+        el('label', { style: 'text-transform:none;font-size:13px;color:var(--fg)' },
+          adopt, ' ' + s('adopt')),
+        el('p', { class: 'help', style: 'margin:0 0 4px 22px' }, s('adoptHelp')))),
     el('div', { class: 'row', style: 'margin-top:18px' }, checkBtn),
     out);
   root.append(targetCard);
@@ -1538,14 +1684,19 @@ async function viewDeployLaravel(root, d, o) {
     el('label', {}, s('lvFolder')), folder,
     el('p', { class: 'help' }, s('lvServed') + ': public/ — ' + s('lvViaHt')),
 
-    el('div', { class: 'sec', style: 'margin:22px 0 10px' }, el('h2', {}, s('lvTitle'))),
-    el('label', {}, s('lvMigrate')), migrate, migrateWarn,
-    el('label', {}, s('lvVendor')), vendorSel,
-    el('label', {}, s('lvDb')), dbMode, dbBox,
-    el('p', { class: 'help', style: 'margin-top:10px' }, s('lvEnvNote')),
-    el('div', { class: 'row', style: 'margin-top:14px' },
-      el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
-        keepDebug, ' ' + s('lvKeepDebug'))),
+    el('details', { class: 'advanced' },
+      el('summary', {},
+        el('span', {}, s('advancedOptions')),
+        el('span', { class: 'help', style: 'margin-left:auto' }, s('advancedOptionsSub'))),
+      el('div', { class: 'advanced-body' },
+        el('div', { class: 'sec', style: 'margin:18px 0 8px' }, el('h2', {}, s('lvTitle'))),
+        el('label', {}, s('lvMigrate')), migrate, migrateWarn,
+        el('label', {}, s('lvVendor')), vendorSel,
+        el('label', {}, s('lvDb')), dbMode, dbBox,
+        el('p', { class: 'help', style: 'margin-top:10px' }, s('lvEnvNote')),
+        el('div', { class: 'row', style: 'margin-top:14px' },
+          el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
+            keepDebug, ' ' + s('lvKeepDebug'))))),
     el('div', { class: 'row', style: 'margin-top:18px' }, nextBtn),
     out));
 }
@@ -1738,6 +1889,7 @@ function renderJob(out, jobId, onDone) {
     else if (e.type === 'info') line('', '  ' + e.text);
     else if (e.type === 'remote') line('', '  ' + e.text + (e.pct ? ' (' + e.pct + '%)' : ''));
     else if (e.type === 'output') line('', e.text.trimEnd());
+    else if (e.type === 'job') line('', '  ' + s('jobStarted').replace('{id}', e.jobId || jobId));
     else if (e.type === 'done') {
       line('d', '✓ ' + s('live'));
       clear(head); head.append(el('span', { class: 'pill ok' }, s('live')));
@@ -2535,6 +2687,7 @@ async function viewMail(root) {
             target: '_blank', rel: 'noreferrer',
           }, el('button', { class: 'primary' }, '✉ ' + s('openWebmail'))),
           el('button', { onclick: () => showMailSettings(out, a.email) }, s('mailSettings')),
+          el('button', { onclick: () => askMailQuota(out, a, reload) }, s('changeQuota')),
           el('button', { onclick: async (e) => {
             e.target.disabled = true;
             clear(out);
@@ -2622,6 +2775,32 @@ async function showMailSettings(out, address) {
       block(s('secure'), r.secure), block(s('insecure'), r.plain)),
     el('div', { class: 'row', style: 'margin-top:14px' },
       el('button', { onclick: () => clear(out) }, s('close')))));
+}
+
+/** Kota değişikliği liste içinde kaybolmasın diye küçük, geri dönülebilir bir form açar. */
+function askMailQuota(out, account, done) {
+  clear(out);
+  const quota = el('input', {
+    type: 'number', min: '0', value: account.quota === null ? '0' : String(account.quota || 0),
+  });
+  const save = el('button', { class: 'primary' }, s('save'));
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    try {
+      await post('mail-quota', {
+        profile: ST.profile, email: account.email, quota: Math.max(0, Number(quota.value) || 0),
+      });
+      done();
+    } catch (err) { save.disabled = false; showError(out, err); }
+  });
+  out.append(el('div', { class: 'card', style: 'margin:16px 0 0' },
+    el('div', { class: 'sec' },
+      el('h2', {}, s('changeQuota') + ' — ' + account.email),
+      el('p', {}, s('quotaHelp'))),
+    el('label', {}, s('quota')), quota,
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      save, el('button', { onclick: () => clear(out) }, s('cancel')))));
+  setTimeout(() => quota.focus(), 30);
 }
 
 /* ------------------------------------------------------------------- FTP */
