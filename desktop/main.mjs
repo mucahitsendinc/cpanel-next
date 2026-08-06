@@ -41,6 +41,22 @@ if (!app.requestSingleInstanceLock()) {
 
 async function start() {
   /*
+   * ⚠ PATH'İ İLK İŞ OLARAK DÜZELT.
+   *
+   * Finder ya da Dock'tan açılan bir macOS uygulaması kabuk PATH'ini ALMIYOR.
+   * Canlıda şu hataya yol açtı: Laravel varlıklarını derlemeye çalışırken
+   * `spawn npm ENOENT` — `npm` `/usr/local/bin`de duruyordu ama uygulamanın
+   * PATH'inde o dizin yoktu. Aynı komut terminalden sorunsuz çalışıyordu.
+   *
+   * Sunucu başlamadan önce olmak zorunda: build, composer ve artisan çağrıları
+   * hep `process.env.PATH` üzerinden komut arıyor.
+   */
+  const { ensureUserPath } = await import(
+    new URL('./app-lib/userpath.mjs', import.meta.url).href
+  );
+  ensureUserPath();
+
+  /*
    * Sunucu `app-lib/` içinden geliyor — derleme öncesi `sync.mjs` tarafından
    * üst dizinden kopyalanıyor (bkz. o dosyadaki gerekçe: `file:..` symlink'i
    * uygulamanın kendi kendini paketlemesine yol açıyordu).

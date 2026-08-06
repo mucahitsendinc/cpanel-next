@@ -6,6 +6,7 @@ import * as email from '../lib/email.mjs';
 import * as ftp from '../lib/ftp.mjs';
 import { changePassword } from '../lib/account.mjs';
 import { downloadDir, stampName, MAX_BYTES, isInsideDownloads } from '../lib/download.mjs';
+import { mergePath, FALLBACKS } from '../lib/userpath.mjs';
 import { setLocale } from '../lib/i18n/index.mjs';
 
 setLocale('en');
@@ -181,4 +182,38 @@ test('yol kaçışı normalleştirme ile engelleniyor', () => {
 test('benzer isimli komşu klasör içeri sayılmıyor', () => {
   // `…/cpanel-next-gizli` yolu `…/cpanel-next` ile başlıyor ama ALTINDA değil.
   assert.equal(isInsideDownloads(downloadDir() + '-gizli/x'), false);
+});
+
+/* --------------------------------------------------------------- PATH */
+
+test('PATH birleştirmede sıra korunuyor, yinelenen atılıyor', () => {
+  const always = () => true;
+  assert.equal(mergePath('/a:/b', '/b:/c', always), '/a:/b:/c');
+});
+
+test('var olmayan dizinler PATH’e girmiyor', () => {
+  // Var olmayan bir dizin PATH'i uzatıp her komut aramasını yavaşlatır.
+  const onlyA = (d) => d === '/a';
+  assert.equal(mergePath('/a:/yok', onlyA), '/a');
+});
+
+test('sondaki eğik çizgi yinelenme sayılıyor', () => {
+  const always = () => true;
+  assert.equal(mergePath('/a/:/a', always), '/a');
+});
+
+test('boş ve tanımsız girdiler çökmüyor', () => {
+  const always = () => true;
+  assert.equal(mergePath(null, undefined, '', always), '');
+});
+
+test('mevcut PATH önce geliyor — terminalden açan kendi ortamını görür', () => {
+  const always = () => true;
+  assert.match(mergePath('/kendi', '/kabuk', always), /^\/kendi:/);
+});
+
+test('yedek liste npm’in bulunabileceği yerleri içeriyor', () => {
+  // `spawn npm ENOENT` hatası tam olarak bu dizin PATH'te olmadığı için oldu.
+  assert.ok(FALLBACKS.includes('/usr/local/bin'));
+  assert.ok(FALLBACKS.includes('/opt/homebrew/bin'));
 });
