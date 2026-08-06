@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { planZip, buildExcludeMatcher, DEFAULT_EXCLUDES , isBlockedDotDir, isToolDirectory} from '../lib/packager.mjs';
+import { planZip, buildExcludeMatcher, DEFAULT_EXCLUDES , isBlockedDotDir, isToolDirectory, buildProject, ensureDependencies } from '../lib/packager.mjs';
 
 /*
  * DOTENV SIZINTISI — bu dosyanın var olma sebebi.
@@ -253,4 +253,54 @@ test('.next altındaki derin yollar korunuyor', () => {
   // yarısı pakete hiç girmedi.
   assert.equal(isToolDirectory('.next/static/chunks/app.js'), false);
   assert.equal(isToolDirectory('.next/server/pages/index.js'), false);
+});
+
+/* ------------------------------------------- build çıktısı doğrulaması */
+
+/** Geçici proje: yalnızca verilen dosyalar. */
+function tmpProject(files) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cn-build-'));
+  for (const [rel, content] of Object.entries(files)) {
+    const full = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, content);
+  }
+  return dir;
+}
+const jsonPkg = (o) => JSON.stringify({ name: 't', ...o });
+
+test('build doğrulaması Next.js’e SABİTLENMİŞ değil', async () => {
+  /*
+   * ⚠ İlk hâli `.next/BUILD_ID`'yi sabit kabul ediyordu. Laravel'in varlık
+   * derlemesi bu yüzden başarıyla koşup — vite çıktısı ekranda dururken —
+   * ".next/BUILD_ID oluşmadı" diye reddediliyordu.
+   */
+  const d = tmpProject({
+    'package.json': jsonPkg({ scripts: { build: 'node -e "require(\'fs\').mkdirSync(\'public/build\',{recursive:true});require(\'fs\').writeFileSync(\'public/build/manifest.json\',\'{}\')"' } }),
+  });
+  const r = await buildProject(d, { expectFiles: ['public/build/manifest.json'] });
+  assert.equal(r.buildId, null);
+});
+
+test('çıktı üretmeyen build reddediliyor', async () => {
+  // "build" adını taşıyıp hiçbir şey yapmayan bir betik, eski çıktıyı
+  // yayınlamamıza yol açardı.
+  const d = tmpProject({ 'package.json': jsonPkg({ scripts: { build: 'node -e "0"' } }) });
+  await assert.rejects(() => buildProject(d, { expectFiles: ['public/build/manifest.json'] }));
+});
+
+test('doğrulanacak dosya verilmezse denetim atlanıyor', async () => {
+  const d = tmpProject({ 'package.json': jsonPkg({ scripts: { build: 'node -e "0"' } }) });
+  const r = await buildProject(d, { expectFiles: [] });
+  assert.equal(r.buildId, null);
+});
+
+test('node_modules varsa kurulum çalıştırılmıyor', async () => {
+  const d = tmpProject({ 'package.json': jsonPkg({}), 'node_modules/.keep': '' });
+  assert.equal(await ensureDependencies(d), false);
+});
+
+test('package.json yoksa kurulum denenmiyor', async () => {
+  const d = tmpProject({ 'readme.md': '' });
+  assert.equal(await ensureDependencies(d), false);
 });
