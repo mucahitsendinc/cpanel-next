@@ -27,8 +27,29 @@ import { mergeMarked, removeMarked } from '../lib/htaccess.mjs';
 
 test('yönlendirme sonsuz döngüye girmiyor — public/ için erken çıkış var', () => {
   const rules = HT_BLOCK.split('\n').filter((l) => l.startsWith('RewriteRule'));
-  assert.equal(rules[0], 'RewriteRule ^public/ - [L]');
-  assert.equal(rules[1], 'RewriteRule ^(.*)$ public/$1 [L]');
+  assert.equal(rules[0], 'RewriteRule ^cpanel-next-maintenance\\.(html|php)$ - [L]');
+  assert.equal(rules[1], 'RewriteRule ^public/ - [L]');
+  assert.equal(rules[2], 'RewriteRule ^(.*)$ public/$1 [L]');
+});
+
+test('bakım sayfası public/ içine yönlendirilmiyor', () => {
+  /*
+   * ErrorDocument iç isteği de .htaccess'ten geçiyor. Bu kural olmazsa bakım
+   * sayfası `public/` altında aranır, bulunamaz ve kullanıcı Apache'nin
+   * çıplak 503 metnini görür — tam da bizim sayfamızı göstermemiz gereken
+   * anda. Kural, yönlendirmeden ÖNCE gelmek zorunda.
+   */
+  const rules = HT_BLOCK.split('\n').filter((l) => l.startsWith('RewriteRule'));
+  const escape = rules.findIndex((r) => /cpanel-next-maintenance/.test(r));
+  const rewrite = rules.findIndex((r) => /public\/\$1/.test(r));
+  assert.notEqual(escape, -1, 'bakım sayfası kuralı yok');
+  assert.ok(escape < rewrite, 'bakım kuralı yönlendirmeden sonra kalmış');
+
+  // Bakım kuralının seçebildiği İKİ dosya adı da kapsanmalı.
+  for (const name of ['cpanel-next-maintenance.html', 'cpanel-next-maintenance.php']) {
+    const re = new RegExp(rules[escape].replace(/^RewriteRule /, '').split(' ')[0]);
+    assert.match(name, re, `${name} kapsanmıyor`);
+  }
 });
 
 test('her istek public/ içine alınıyor', () => {
@@ -468,4 +489,85 @@ test('temizlik varsayılan açık, kapatmak açıkça false gerektiriyor', () =>
   assert.equal(normalizeSettings({}).clean, true);
   assert.equal(normalizeSettings({ clean: false }).clean, false);
   assert.equal(normalizeSettings({ clean: 0 }).clean, true);
+});
+
+/* ------------------------------------------------- .htaccess blok SIRASI */
+
+/*
+ * Bu bölüm canlıda görülen bir hatadan doğdu: güncelleme sırasında site bakım
+ * sayfası yerine 500 veriyordu. İki blok da doğruydu; yanlış olan SIRAYDI.
+ */
+
+const MB = '# cpanel-next maintenance BEGIN';
+const ME = '# cpanel-next maintenance END';
+const maintBlock = `${MB}\nRewriteRule ^ - [R=503,L]\n${ME}`;
+const anchor = { begin: MB, end: ME };
+
+/** Laravel bloğu bakım bloğunun altında mı? */
+const laravelBelowMaintenance = (text) => {
+  const m = text.indexOf(MB);
+  const l = text.indexOf(HT_BEGIN);
+  assert.notEqual(m, -1, 'bakım bloğu yok');
+  assert.notEqual(l, -1, 'laravel bloğu yok');
+  return m < l;
+};
+
+test('laravel bloğu bakım bloğunun ALTINA kuruluyor', () => {
+  // Gerçek sıra: önce bakım kuralı kuruluyor, sonra laravel yönlendirmesi.
+  const withMaint = mergeMarked('# host\n', { ...anchor, block: maintBlock });
+  const both = mergeMarked(withMaint, {
+    begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor,
+  });
+  assert.equal(laravelBelowMaintenance(both), true);
+});
+
+test('yanlış sırada kurulmuş eski dosya kendiliğinden onarılıyor', () => {
+  /*
+   * Aracın önceki sürümleriyle kurulmuş her docroot bu hâlde: laravel bloğu
+   * üstte. İlk güncellemede taşınmalı, kullanıcı elle düzeltmek zorunda
+   * kalmamalı.
+   */
+  const broken = `${HT_BLOCK}\n\n${maintBlock}\n\n# kullanıcının kendi kuralı\nRedirect 301 /a /b\n`;
+  assert.equal(laravelBelowMaintenance(broken), false, 'başlangıç yanlış sırada olmalı');
+
+  const fixed = mergeMarked(broken, {
+    begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor,
+  });
+  assert.equal(laravelBelowMaintenance(fixed), true);
+  // Taşıma sırasında kullanıcının kuralı kaybolmamalı ve blok İKİ KEZ olmamalı.
+  assert.match(fixed, /Redirect 301 \/a \/b/);
+  assert.equal(fixed.split(HT_BEGIN).length - 1, 1);
+  assert.equal(fixed.split(MB).length - 1, 1);
+});
+
+test('sıra zaten doğruysa yazma yapılmıyor', () => {
+  const withMaint = mergeMarked('# host\n', { ...anchor, block: maintBlock });
+  const both = mergeMarked(withMaint, {
+    begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor,
+  });
+  // İkinci çağrı null dönmeli: gereksiz yazma, gereksiz risk.
+  assert.equal(
+    mergeMarked(both, { begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor }),
+    null
+  );
+});
+
+test('bakım bloğu yoksa laravel bloğu yine en üste gidiyor', () => {
+  // Bakım kuralı kurulamamış olabilir (adım hoşgörülü). O durumda eski
+  // davranış geçerli: en üste.
+  const out = mergeMarked('# host\nRedirect 301 /a /b\n', {
+    begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor,
+  });
+  assert.equal(out.indexOf(HT_BEGIN), 0);
+  assert.match(out, /Redirect 301/);
+});
+
+test('bakım bloğu sökülünce laravel bloğu duruyor', () => {
+  const withMaint = mergeMarked('# host\n', { ...anchor, block: maintBlock });
+  const both = mergeMarked(withMaint, {
+    begin: HT_BEGIN, end: HT_END, block: HT_BLOCK, after: anchor,
+  });
+  const off = removeMarked(both, anchor);
+  assert.match(off, new RegExp(HT_BEGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.equal(off.includes(MB), false);
 });
