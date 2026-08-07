@@ -148,3 +148,18 @@ test('webmail oturumu üretilemezse sayfa üretilmiyor', async () => {
   assert.equal(r.status, 400);
   assert.doesNotMatch(r.html, /<form/);
 });
+
+test('sso terminal hedefini tanıyor', async () => {
+  /*
+   * Terminal düğmesi /sso üzerinden otomatik girişle açılıyor. Hedef
+   * tanınmazsa `gotoFor` null döner ve kullanıcı sessizce cPanel ANA
+   * SAYFASINA düşer — düğme çalışıyor görünür ama yanlış yere gider.
+   */
+  const r = await page(stateWith(), `profile=${HOST}&target=terminal`);
+  assert.match(attr(r.html, 'goto_uri') ?? '', /terminal\/index\.html/);
+});
+
+test('tanınmayan hedef cPanel ana sayfasına düşüyor', async () => {
+  const r = await page(stateWith(), `profile=${HOST}&target=uydurma`);
+  assert.equal(attr(r.html, 'goto_uri'), null);
+});

@@ -238,6 +238,13 @@ header .brand{display:flex;align-items:center;gap:9px;min-width:var(--sidebar);f
 .header-actions{display:flex;align-items:center;gap:7px}
 .project-chip{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
 .icon-button{width:40px;padding:0;display:grid;place-items:center;font-weight:700}
+/* Terminal kısayolları ve komut geçmişi — küçük, tıklanabilir etiketler.
+   Komutu ÇALIŞTIRMIYORLAR, giriş satırına yazıyorlar (bkz. viewTerminal). */
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;width:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;opacity:.9}
+.chip:hover{opacity:1}
+/* Düğme gibi görünmesi gereken bağlantılar (dışarı açılan cPanel sayfaları). */
+a.button{display:inline-block;text-decoration:none}
 .ver{font-size:11px;opacity:.55;font-weight:500;margin-left:6px;letter-spacing:.02em}
 .app-shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);max-width:1440px;margin:0 auto;min-height:calc(100vh - 64px)}
 .sidebar{padding:22px 14px 30px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -414,6 +421,7 @@ const S = {
     lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
     hkTitle:'Özel terminal komutları',hkSub:'kendi artisan/shell komutlarınız',hkPre:'Dosyalar yüklendikten sonra (composer öncesi)',hkPost:'vendor hazır olduktan sonra (artisan öncesi)',hkEnd:'Her şey bittikten sonra',hkHelp:'Her satır bir komut. $PHP ve $APPDIR kullanılabilir, örn: "$PHP" artisan queue:restart — Bu ayar projenin .cpanel-next.json dosyasına yazılır, yayında da güncellemede de geçerlidir.',hkSaved:'Komutlar kaydedildi.',
+    pickAccount:'Önce soldaki listeden bir cPanel hesabı seçin.',terminal:'Terminal',tabTerminalSub:'Sunucuda komut çalıştırın — cPanel’e gitmeden.',tmSub:'Komutlar sunucudaki dinleyiciye gönderiliyor. cd bir sonraki komuta taşınır.',tmCmd:'komut yazın…',tmRun:'Çalıştır',tmRecent:'Son:',tmHome:'Ev dizinine dön',tmReset:'Ev dizinine dönüldü.',tmExit:'çıkış kodu {code}',tmCpanel:'cPanel terminali',tmNote:'Etkileşimli programlar (vim, top) burada çalışmaz — onlar için cPanel terminalini kullanın. İlk komut, sunucudaki dinleyici uykudaysa bir dakikaya kadar sürebilir.',
     lvClean:'Yayından sonra temizlik yap',
     lvCleanHelp:'Uygulama önbelleğini boşaltır ve storage/logs içindeki .log dosyalarını sıfırlar. Önbellek zaten migration’dan önce temizleniyor; buradaki adım eski verinin ve eski log birikiminin kalmaması için.',
     mgNone:'Çalıştırma',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -585,6 +593,7 @@ const S = {
     lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
     hkTitle:'Custom terminal commands',hkSub:'your own artisan/shell commands',hkPre:'After files are uploaded (before composer)',hkPost:'After vendor is ready (before artisan)',hkEnd:'After everything finishes',hkHelp:'One command per line. $PHP and $APPDIR are available, e.g. "$PHP" artisan queue:restart — Saved into the project .cpanel-next.json, so it applies to both deploys and updates.',hkSaved:'Commands saved.',
+    pickAccount:'Choose a cPanel account from the list above first.',terminal:'Terminal',tabTerminalSub:'Run commands on the server — without going to cPanel.',tmSub:'Commands are sent to the listener on the server. cd carries over to the next command.',tmCmd:'type a command…',tmRun:'Run',tmRecent:'Recent:',tmHome:'Back to home directory',tmReset:'Back in the home directory.',tmExit:'exit code {code}',tmCpanel:'cPanel terminal',tmNote:'Interactive programs (vim, top) do not work here — use the cPanel terminal for those. The first command can take up to a minute if the listener on the server is asleep.',
     lvClean:'Clean up after publishing',
     lvCleanHelp:'Flushes the application cache and truncates the .log files in storage/logs. Caches are already cleared before migration; this step is about leaving no stale data or accumulated logs behind.',
     mgNone:'Do not run',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -739,6 +748,7 @@ function navIcon(name) {
     history: 'M4 7v5h5M5 11a8 8 0 1 0 2-5M12 8v5l3 2',
     settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-6 1 2.2 2.4.8 2.2-1 1.4 1.4-1 2.2.8 2.4L21 12l-2.2 1-.8 2.4 1 2.2-1.4 1.4-2.2-1-2.4.8L12 21l-1-2.2-2.4-.8-2.2 1L5 17.6l1-2.2-.8-2.4L3 12l2.2-1L6 8.6l-1-2.2L6.4 5l2.2 1 2.4-.8Z',
     services: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+    terminal: 'M4 4h16v16H4zM7 9l3 3-3 3M13 15h4',
   };
   return el('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
     el('path', { d: paths[name] || paths.overview }));
@@ -928,7 +938,7 @@ function renderMain() {
    * TABS sabiti görünüm yönlendirmesinin tek doğruluk kaynağı olarak kalıyor;
    * statik test de yeni bir ekran eklenip eşlemesi unutulmasını böyle yakalar.
    */
-  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'history', 'settings'];
+  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'terminal', 'history', 'settings'];
   const go = (k) => { ST.tab = k; renderMain(); };
   const navItem = (k) => el('button', {
     class: 'nav-item' + (ST.tab === k ? ' on' : ''),
@@ -938,7 +948,7 @@ function renderMain() {
   const services = ['database', 'mail', 'ftp'];
   const sidebar = el('aside', { class: 'sidebar', 'aria-label': s('navigation') },
     el('div', { class: 'nav-caption' }, s('sitesGroup')),
-    navItem('overview'), navItem('deploy'), navItem('history'),
+    navItem('overview'), navItem('deploy'), navItem('terminal'), navItem('history'),
     el('details', { class: 'nav-services', open: services.includes(ST.tab) ? 'true' : null },
       el('summary', { class: 'nav-item' }, navIcon('services'), el('span', {}, s('services'))),
       el('div', { class: 'nav-children' }, ...services.map(navItem))),
@@ -965,7 +975,7 @@ function renderMain() {
   }
 
   ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, mail: viewMail,
-     ftp: viewFtp, history: viewHistory, settings: viewSettings })[ST.tab](body);
+     ftp: viewFtp, terminal: viewTerminal, history: viewHistory, settings: viewSettings })[ST.tab](body);
 }
 
 /* -------------------------------------------------------------- overview */
@@ -1200,6 +1210,163 @@ function askLaravelUpdate(out, site, reload) {
     hookEditor(project),
     el('div', { class: 'row', style: 'margin-top:8px' },
       go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+}
+
+
+/**
+ * Sunucu terminali.
+ *
+ * Gerçek bir pty DEĞİL: komutlar cron ile başlatılan uzun ömürlü worker'a
+ * dosya bırakılarak gönderiliyor (SSH yok, paylaşımlı hostingde olmadığı için).
+ * Yani istek/yanıt — etkileşimli programlar (vim, top) burada çalışmaz, onlar
+ * için cPanel'in kendi terminali var.
+ *
+ * `cd` sonraki komuta taşınıyor; dizin sunucu tarafında tutuluyor.
+ */
+function viewTerminal(root) {
+  clear(root);
+  if (!ST.profile) { root.append(el('div', { class: 'empty' }, s('pickAccount'))); return; }
+
+  const out = el('div', { class: 'log', style: 'min-height:340px;max-height:56vh' });
+  const promptLabel = el('span', { class: 'mono muted' }, '~');
+  const input = el('input', {
+    placeholder: s('tmCmd'), spellcheck: 'false', autocomplete: 'off',
+    style: 'flex:1;font-family:ui-monospace,monospace',
+  });
+  const runBtn = el('button', { class: 'primary' }, s('tmRun'));
+  const histBox = el('div', { class: 'row', style: 'margin-top:8px' });
+
+  // İstemci tarafı geçmiş gezinme durumu (yukarı/aşağı ok).
+  let history = [];
+  let cursor = -1;
+
+  const line = (text, cls) => {
+    out.append(el('div', { class: cls || null }, text));
+    out.scrollTop = out.scrollHeight;
+  };
+
+  const renderHistory = () => {
+    clear(histBox);
+    if (!history.length) return;
+    histBox.append(el('span', { class: 'help' }, s('tmRecent')));
+    for (const cmd of history) {
+      histBox.append(el('button', {
+        class: 'chip', title: cmd,
+        onclick: () => { input.value = cmd; input.focus(); },
+      }, cmd.length > 28 ? cmd.slice(0, 27) + '…' : cmd));
+    }
+  };
+
+  /*
+   * Hazır komutlar KOMUTU ÇALIŞTIRMIYOR, giriş satırına yazıyor.
+   *
+   * Tek tıkla `migrate` koşturmak, bu araçta daha önce şikâyet edilen
+   * "kafasına göre karar alma" davranışının aynısı olurdu. Kullanıcı görüp
+   * Enter'a basıyor.
+   */
+  const shortcuts = [
+    ['optimize:clear', '"$PHP" artisan optimize:clear'],
+    ['config:cache', '"$PHP" artisan config:cache'],
+    ['migrate', '"$PHP" artisan migrate --force'],
+    ['queue:restart', '"$PHP" artisan queue:restart'],
+    ['storage:link', '"$PHP" artisan storage:link'],
+    ['laravel.log', 'tail -n 50 storage/logs/laravel.log'],
+    ['restart (Node)', 'touch tmp/restart.txt'],
+    ['disk', 'du -sh * 2>/dev/null | sort -h | tail -20'],
+  ];
+  const shortcutBox = el('div', { class: 'row', style: 'margin-top:6px' },
+    ...shortcuts.map(([label, cmd]) => el('button', {
+      class: 'chip', title: cmd,
+      onclick: () => { input.value = cmd; input.focus(); },
+    }, label)));
+
+  const setBusy = (busy) => { runBtn.disabled = busy; input.disabled = busy; };
+
+  const run = async () => {
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    setBusy(true);
+    line(promptLabel.textContent + ' $ ' + cmd, 's');
+    input.value = '';
+    cursor = -1;
+
+    try {
+      const r = await post('shell', { profile: ST.profile, command: cmd });
+      await new Promise((resolve) => {
+        const es = new EventSource('/api/jobs/' + r.jobId + '/events?t=' + TOKEN);
+        es.onmessage = (ev) => {
+          const e = JSON.parse(ev.data);
+          if (e.type === 'output' && e.text) {
+            for (const l of String(e.text).replace(/\n$/, '').split('\n')) line(l);
+          } else if (e.type === 'remote' && e.text) {
+            line(e.text, 'w');
+          } else if (e.type === 'done') {
+            const res = e.result || {};
+            if (res.exitCode) line(s('tmExit').replace('{code}', res.exitCode), 'e');
+            if (res.prompt) promptLabel.textContent = res.prompt;
+            if (res.history) { history = res.history; renderHistory(); }
+            es.close(); resolve();
+          } else if (e.type === 'failed') {
+            line((e.error && e.error.message) || 'error', 'e');
+            if (e.error && e.error.hint) line(e.error.hint, 'e');
+            es.close(); resolve();
+          }
+        };
+        es.onerror = () => { es.close(); resolve(); };
+      });
+    } catch (err) {
+      line(err.message, 'e');
+      if (err.hint) line(err.hint, 'e');
+    }
+    setBusy(false);
+    input.focus();
+  };
+
+  runBtn.addEventListener('click', run);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); run(); return; }
+    // Yukarı/aşağı: geçmişte gezinme — kabuk alışkanlığı.
+    if (ev.key === 'ArrowUp' && history.length) {
+      ev.preventDefault();
+      cursor = Math.min(cursor + 1, history.length - 1);
+      input.value = history[cursor] || '';
+    } else if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      cursor = Math.max(cursor - 1, -1);
+      input.value = cursor === -1 ? '' : (history[cursor] || '');
+    }
+  });
+
+  const resetBtn = el('button', {
+    onclick: async () => {
+      const r = await post('shell-reset', { profile: ST.profile });
+      promptLabel.textContent = r.prompt;
+      line(s('tmReset'), 'w');
+    },
+  }, s('tmHome'));
+
+  root.append(el('div', { class: 'card' },
+    el('div', { class: 'sec' }, el('h2', {}, s('terminal')), el('p', {}, s('tmSub'))),
+    out,
+    el('div', { class: 'row', style: 'margin-top:10px' }, promptLabel, input, runBtn),
+    shortcutBox,
+    histBox,
+    el('div', { class: 'row', style: 'margin-top:14px' },
+      resetBtn,
+      el('a', {
+        href: cpanelUrl('terminal', {}, null), target: '_blank', rel: 'noreferrer',
+        class: 'button',
+      }, s('tmCpanel'))),
+    el('p', { class: 'help' }, s('tmNote'))));
+
+  // Açılışta istem satırı ve geçmiş.
+  api('shell-state?profile=' + encodeURIComponent(ST.profile)).then((r) => {
+    promptLabel.textContent = r.prompt;
+    history = r.history || [];
+    renderHistory();
+  }).catch(() => {});
+
+  input.focus();
 }
 
 /**
