@@ -61,9 +61,35 @@ if (!identity) {
 const run = (cmd, args) =>
   execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
 
+/** Dosya zaten imzalı, notarize ve mühürlü mü? */
+function alreadySealed(dmg) {
+  const stapled = spawnSync('xcrun', ['stapler', 'validate', dmg], { encoding: 'utf8' });
+  if (stapled.status !== 0) return false;
+  const gate = spawnSync(
+    'spctl',
+    ['-a', '-t', 'open', '--context', 'context:primary-signature', dmg],
+    { encoding: 'utf8' }
+  );
+  return gate.status === 0;
+}
+
 for (const name of images) {
   const dmg = path.join(distDir, name);
   console.log(`\n▸ ${name}`);
+
+  /*
+   * ⚠ MÜHÜRLÜ DOSYAYA DOKUNMUYORUZ.
+   *
+   * Yeniden imzalamak var olan mührü GEÇERSİZ kılıyor (`codesign` imzayı
+   * değiştiriyor, mühür eski imzaya bağlı) ve dosyanın SHA-256'sını
+   * değiştiriyor. Bir kez yaşandı: dağıtım için verilen parmak izi, betik
+   * ikinci kez koştuğu için tutmaz hâle geldi ve dosya bir süre mühürsüz
+   * kaldı. Betik artık idempotent.
+   */
+  if (alreadySealed(dmg)) {
+    console.log('  zaten imzalı, notarize ve mühürlü — atlanıyor');
+    continue;
+  }
 
   /*
    * `--timestamp` ŞART. Zaman damgasız imza, sertifika süresi dolduğunda

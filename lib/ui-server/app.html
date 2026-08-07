@@ -326,7 +326,7 @@ const S = {
     version:'Sürüm',history:'Deploy geçmişi',serverRuns:'Sunucudaki çalıştırmalar',
     refresh:'Yenile',blockers:'Yayınlanamaz',open:'Aç',noProject:'Önce bir proje seçin.',
     quota:'kota',regime:'Rejim',account:'Hesap',working:'Çalışıyor…',
-    backToTerminal:'Terminale dön',jobRunning:'İş sürüyor — kapatmak onu durdurmaz, ama pencereyi açık tutmak ilerlemeyi görmenizi sağlar.',
+    backToTerminal:'Terminale dön',quitApp:'Çıkış',jobRunning:'İş sürüyor — kapatmak onu durdurmaz, ama pencereyi açık tutmak ilerlemeyi görmenizi sağlar.',
     closed:'Bu pencereyi kapatabilirsiniz. Terminale dönüldü.',jobStarted:'Sunucu işi başladı: {id}',
     settings:'Ayarlar',profiles:'cPanel hesapları',addProfile:'Hesap ekle',remove:'Sil',
     host:'Sunucu',user:'Kullanıcı adı',password:'cPanel şifresi',port:'Port',
@@ -496,7 +496,7 @@ const S = {
     version:'Version',history:'Deploy history',serverRuns:'Server runs',
     refresh:'Refresh',blockers:'Not deployable',open:'Open',noProject:'Pick a project first.',
     quota:'quota',regime:'Regime',account:'Account',working:'Working…',
-    backToTerminal:'Back to terminal',jobRunning:'A job is running — closing will not stop it, but keeping this open lets you watch progress.',
+    backToTerminal:'Back to terminal',quitApp:'Quit',jobRunning:'A job is running — closing will not stop it, but keeping this open lets you watch progress.',
     closed:'You can close this window. Returned to the terminal.',jobStarted:'Server job started: {id}',
     settings:'Settings',profiles:'cPanel accounts',addProfile:'Add account',remove:'Remove',
     host:'Server',user:'Username',password:'cPanel password',port:'Port',
@@ -693,6 +693,9 @@ const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); };
 
 let ST = { locked: true, profiles: [], profile: null, tab: 'overview', overview: null, deploy: {} };
 
+/** Masaüstü kabuğunda mıyız? `boot()` sorgu parametresinden belirliyor. */
+let DESKTOP = false;
+
 function showError(container, err) {
   container.prepend(el('div', { class: 'msg err' },
     el('strong', {}, err.message),
@@ -746,6 +749,15 @@ async function boot() {
    */
   const shell = new URLSearchParams(location.search).get('shell');
   if (shell) document.body.classList.add('shell-' + shell);
+  /*
+   * Masaüstünde mi çalışıyoruz?
+   *
+   * Yalnızca görünüm için değil: "Terminale dön" düğmesinin davranışı
+   * kabuğa göre TAMAMEN farklı. Tarayıcıda sunucuyu bırakıp terminale
+   * dönmek doğru; masaüstünde sunucu uygulamanın KENDİ İÇİNDE ve sayfayı
+   * boşaltmak kullanıcıya çalışmayan bir pencere bırakıyor.
+   */
+  DESKTOP = Boolean(shell);
 
   const st = await api('status');
   ST.locked = st.locked;
@@ -876,14 +888,27 @@ function renderMain() {
     el('span', { class: 'spacer' }), projBtn,
     el('div', { class: 'header-actions' }, langBtn,
     el('button', { onclick: async () => { await post('lock'); ST.locked = true; renderUnlock(); } }, s('lock')),
+    /*
+     * ⚠ AYNI DÜĞME, İKİ KABUKTA İKİ FARKLI ŞEY.
+     *
+     * Tarayıcıda: sunucu terminalde koşuyor, "terminale dön" onu bırakıp
+     * komut satırına geri veriyor ve sekmeyi boşaltmak doğru.
+     *
+     * Masaüstünde: sunucu uygulamanın KENDİ SÜRECİNDE. Sayfayı boşaltmak
+     * kullanıcıya hiçbir şey yapmayan, geri dönüşü de olmayan bir pencere
+     * bırakıyordu — "uygulama patladı" diye bildirilen davranış buydu.
+     * Orada tek anlamlı karşılık uygulamadan ÇIKMAK; pencere kapanınca
+     * main.mjs `window-all-closed` ile süreci de sonlandırıyor.
+     */
     el('button', { onclick: async () => {
       const r = await post('exit');
       if (r.jobs && !confirm(s('jobRunning'))) return;
+      if (DESKTOP) { stopHeartbeat(); window.close(); return; }
       document.body.innerHTML = '';
       document.body.append(el('div', { class: 'center' },
         el('div', { class: 'card' }, el('h2', {}, 'cpanel-next'), el('p', { class: 'sub' }, s('closed')))));
       stopHeartbeat();
-    } }, s('backToTerminal')))));
+    } }, DESKTOP ? s('quitApp') : s('backToTerminal')))));
 
   /*
    * Gezinme alanlara göre; veritabanı, e-posta ve FTP günlük akışın içine
