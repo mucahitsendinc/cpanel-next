@@ -238,6 +238,7 @@ header .brand{display:flex;align-items:center;gap:9px;min-width:var(--sidebar);f
 .header-actions{display:flex;align-items:center;gap:7px}
 .project-chip{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
 .icon-button{width:40px;padding:0;display:grid;place-items:center;font-weight:700}
+.ver{font-size:11px;opacity:.55;font-weight:500;margin-left:6px;letter-spacing:.02em}
 .app-shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);max-width:1440px;margin:0 auto;min-height:calc(100vh - 64px)}
 .sidebar{padding:22px 14px 30px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:5px;min-width:0}
 .nav-caption{margin:14px 10px 5px;color:var(--dim);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.11em}
@@ -412,6 +413,7 @@ const S = {
     lvTitle:'Laravel ayarları',lvFolder:'Uygulama klasörü',lvAuto:'domainin belge kökü — seçilmiyor',
     lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
+    hkTitle:'Özel terminal komutları',hkSub:'kendi artisan/shell komutlarınız',hkPre:'Dosyalar yüklendikten sonra (composer öncesi)',hkPost:'vendor hazır olduktan sonra (artisan öncesi)',hkEnd:'Her şey bittikten sonra',hkHelp:'Her satır bir komut. $PHP ve $APPDIR kullanılabilir, örn: "$PHP" artisan queue:restart — Bu ayar projenin .cpanel-next.json dosyasına yazılır, yayında da güncellemede de geçerlidir.',hkSaved:'Komutlar kaydedildi.',
     lvClean:'Yayından sonra temizlik yap',
     lvCleanHelp:'Uygulama önbelleğini boşaltır ve storage/logs içindeki .log dosyalarını sıfırlar. Önbellek zaten migration’dan önce temizleniyor; buradaki adım eski verinin ve eski log birikiminin kalmaması için.',
     mgNone:'Çalıştırma',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -582,6 +584,7 @@ const S = {
     lvTitle:'Laravel settings',lvFolder:'Application folder',lvAuto:'the domain’s document root — not selectable',
     lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
+    hkTitle:'Custom terminal commands',hkSub:'your own artisan/shell commands',hkPre:'After files are uploaded (before composer)',hkPost:'After vendor is ready (before artisan)',hkEnd:'After everything finishes',hkHelp:'One command per line. $PHP and $APPDIR are available, e.g. "$PHP" artisan queue:restart — Saved into the project .cpanel-next.json, so it applies to both deploys and updates.',hkSaved:'Commands saved.',
     lvClean:'Clean up after publishing',
     lvCleanHelp:'Flushes the application cache and truncates the .log files in storage/logs. Caches are already cleared before migration; this step is about leaving no stale data or accumulated logs behind.',
     mgNone:'Do not run',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -762,6 +765,7 @@ async function boot() {
   const st = await api('status');
   ST.locked = st.locked;
   ST.profiles = st.profiles;
+  ST.version = st.version || '';
   LANG = st.lang || LANG;
   if (!ST.profile && st.profiles.length) ST.profile = st.profiles[0].name;
   // Terminalden bir proje dizininde açıldıysa o projeyi hazır seç ve
@@ -883,7 +887,13 @@ function renderMain() {
     : null;
 
   app.append(el('header', {},
-    el('span', { class: 'brand' }, el('span', { class: 'brand-mark' }, 'cn'), el('span', {}, 'cpanel-next')),
+    el('span', { class: 'brand' }, el('span', { class: 'brand-mark' }, 'cn'), el('span', {}, 'cpanel-next'),
+      /*
+       * Sürüm markanın yanında, her ekranda.
+       * Kullanıcı "hangi sürümdeyim" sorusunu sormak zorunda kalmasın;
+       * bir hatayı bildirirken ilk sorulan şey bu.
+       */
+      ST.version ? el('span', { class: 'ver', title: 'cpanel-next v' + ST.version }, 'v' + ST.version) : null),
     el('div', { class: 'header-account' }, sel, addBtn, gearBtn),
     el('span', { class: 'spacer' }), projBtn,
     el('div', { class: 'header-actions' }, langBtn,
@@ -1070,6 +1080,65 @@ async function viewOverview(root, refresh) {
  * `laravel.migrate` alanı — sunucu ayar gelmediğinde oradan okuyor, yani iki
  * ön yüz aynı kaynağa bakıyor.
  */
+
+/**
+ * Kullanıcının kendi terminal komutları.
+ *
+ * Kaynak projenin `.cpanel-next.json` dosyası — yayınla güncelleme AYNI
+ * dosyayı okuyor, yani burada kaydedilen bir komut her iki akışta da
+ * geçerli. "Yayınlarken ayarladım, güncellerken yok" durumu bu yüzden
+ * oluşmuyor.
+ */
+function hookEditor(projectPath) {
+  const box = el('div', {});
+  const areas = {};
+  const STAGES = [
+    ['preInstall', s('hkPre')],
+    ['postInstall', s('hkPost')],
+    ['postStart', s('hkEnd')],
+  ];
+
+  const msg = el('div', {});
+  const save = el('button', { style: 'margin-top:10px' }, s('save'));
+
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    clear(msg);
+    try {
+      // Boş satırlar atılıyor; kullanıcı listeyi rahatça düzenleyebilsin.
+      const hooks = {};
+      for (const [stage] of STAGES) {
+        const lines = areas[stage].value.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length) hooks[stage] = lines;
+      }
+      const r = await post('hooks', { path: projectPath, hooks });
+      for (const w of r.warnings ?? []) msg.append(el('div', { class: 'msg warn' }, w));
+      msg.append(el('div', { class: 'msg ok' }, s('hkSaved')));
+    } catch (err) { showError(msg, err); }
+    save.disabled = false;
+  });
+
+  const body = el('div', {});
+  for (const [stage, label] of STAGES) {
+    const ta = el('textarea', { rows: '3', spellcheck: 'false',
+      style: 'width:100%;font-family:ui-monospace,monospace;font-size:12px' });
+    areas[stage] = ta;
+    body.append(el('label', {}, label), ta);
+  }
+  body.append(el('p', { class: 'help' }, s('hkHelp')), save, msg);
+
+  // Mevcut tanımlar yükleniyor.
+  post('hooks', { path: projectPath }).then((r) => {
+    for (const [stage] of STAGES) areas[stage].value = (r.hooks?.[stage] ?? []).join('\n');
+  }).catch(() => {});
+
+  box.append(el('details', { class: 'advanced' },
+    el('summary', {}, el('span', {}, s('hkTitle')),
+      el('span', { class: 'help', style: 'margin-left:auto' }, s('hkSub'))),
+    el('div', { class: 'advanced-body' }, body)));
+  return box;
+}
+
 function askLaravelUpdate(out, site, reload) {
   clear(out);
 
@@ -1128,6 +1197,7 @@ function askLaravelUpdate(out, site, reload) {
       el('label', { style: 'margin:0;text-transform:none;font-size:13px;color:var(--fg)' },
         clean, ' ' + s('lvClean'))),
     el('p', { class: 'help' }, s('lvCleanHelp')),
+    hookEditor(project),
     el('div', { class: 'row', style: 'margin-top:8px' },
       go, el('button', { onclick: () => clear(out) }, s('cancel')))));
 }

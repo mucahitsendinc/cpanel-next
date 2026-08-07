@@ -1,6 +1,6 @@
 {
   "name": "cpanel-next",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Deploy Next.js apps to cPanel shared hosting (Passenger / CloudLinux Node.js Selector) from your terminal.",
   "type": "module",
   "license": "MIT",

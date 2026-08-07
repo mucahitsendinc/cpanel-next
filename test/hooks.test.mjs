@@ -100,3 +100,30 @@ test('kullanıcı komutu $PHP ve $APPDIR kullanabiliyor', () => {
   const { hooks } = nh({ postStart: '"$PHP" artisan app:rapor --gun=1' });
   assert.match(hooks.postStart[0], /\$PHP/);
 });
+
+test('proje ayarı kaydedilirken iç alanlar dosyaya yazılmıyor', async () => {
+  /*
+   * `loadProjectConfig` okuduğu nesneye `__file`/`__dir` ekliyor. "Oku,
+   * değiştir, geri yaz" akışı onları dosyaya taşıyordu — içlerinde makineye
+   * özgü mutlak yollar var ve bu dosya commit ediliyor.
+   */
+  const fsm = await import('node:fs');
+  const osm = await import('node:os');
+  const pm = await import('node:path');
+  const { saveProjectConfig, loadProjectConfig } = await import('../lib/config.mjs');
+
+  const dir = fsm.mkdtempSync(pm.join(osm.tmpdir(), 'cn-proj-'));
+  saveProjectConfig(dir, { framework: 'laravel' });
+  const loaded = loadProjectConfig(dir);
+  assert.equal('__dir' in loaded, true, 'yükleyici iç alanı ekliyor olmalı');
+
+  saveProjectConfig(dir, { ...loaded, hooks: { postStart: ['echo bitti'] } });
+  const raw = JSON.parse(fsm.readFileSync(pm.join(dir, '.cpanel-next.json'), 'utf8'));
+
+  assert.equal('__dir' in raw, false, '__dir dosyaya yazılmamalı');
+  assert.equal('__file' in raw, false, '__file dosyaya yazılmamalı');
+  assert.equal(raw.framework, 'laravel', 'mevcut ayar korunmalı');
+  assert.deepEqual(raw.hooks.postStart, ['echo bitti']);
+
+  fsm.rmSync(dir, { recursive: true, force: true });
+});
