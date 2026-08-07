@@ -240,6 +240,8 @@ header .brand{display:flex;align-items:center;gap:9px;min-width:var(--sidebar);f
 .icon-button{width:40px;padding:0;display:grid;place-items:center;font-weight:700}
 /* Terminal kısayolları ve komut geçmişi — küçük, tıklanabilir etiketler.
    Komutu ÇALIŞTIRMIYORLAR, giriş satırına yazıyorlar (bkz. viewTerminal). */
+/* Dosya tarayıcısı iki panel gösteriyor; varsayılan 1050px orada dar kalıyor. */
+body.wide-content .content{max-width:1400px}
 .chip{font-size:12px;padding:4px 10px;border-radius:999px;width:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;opacity:.9}
 .chip:hover{opacity:1}
@@ -421,7 +423,8 @@ const S = {
     lvServed:'Yayınlanan',lvViaHt:'.htaccess ile public/ içine yönlendiriliyor',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'APP_DEBUG’a dokunma (sunucudaki değer kalsın)',
     hkTitle:'Özel terminal komutları',hkSub:'kendi artisan/shell komutlarınız',hkPre:'Dosyalar yüklendikten sonra (composer öncesi)',hkPost:'vendor hazır olduktan sonra (artisan öncesi)',hkEnd:'Her şey bittikten sonra',hkHelp:'Her satır bir komut. $PHP ve $APPDIR kullanılabilir, örn: "$PHP" artisan queue:restart — Bu ayar projenin .cpanel-next.json dosyasına yazılır, yayında da güncellemede de geçerlidir.',hkSaved:'Komutlar kaydedildi.',
-    pickAccount:'Önce soldaki listeden bir cPanel hesabı seçin.',terminal:'Terminal',tabTerminalSub:'Sunucuda komut çalıştırın — cPanel’e gitmeden.',tmSub:'Komutlar sunucudaki dinleyiciye gönderiliyor. cd bir sonraki komuta taşınır.',tmCmd:'komut yazın…',tmRun:'Çalıştır',tmRecent:'Son:',tmHome:'Ev dizinine dön',tmReset:'Ev dizinine dönüldü.',tmExit:'çıkış kodu {code}',tmCpanel:'cPanel terminali',tmNote:'Etkileşimli programlar (vim, top) burada çalışmaz — onlar için cPanel terminalini kullanın. İlk komut, sunucudaki dinleyici uykudaysa bir dakikaya kadar sürebilir.',
+    explorer:'Dosyalar',tabExplorerSub:'Solda bilgisayarınız, sağda sunucu. Seçin, gönderin ya da indirin.',fbLocal:'Bilgisayarım',fbRemote:'Sunucu',fbSend:'Sunucuya gönder',fbGet:'Bilgisayarıma indir',fbEmpty:'(boş)',fbPick:'Önce bir dosya ya da klasör seçin.',fbOne:'Silmek için tek bir öğe seçin.',fbPlan:'{count} dosya · {size}',fbGetPlan:'{count} öğe indirilecek → {dir}',fbEnvWarn:'Bu dosyalar sır içerebilir: {list}',fbSkip:'Atlananlar: {list}',fbOverwrite:'Sunucuda aynı adlı dosyalar VARSA ÜZERİNE YAZILACAK. Devam edilsin mi?',fbSure:'Devam edilsin mi?',fbDelAsk:'Bu SUNUCUDAN kalıcı olarak silinecek. Onaylamak için adını yazın: {name}',fbDeleted:'Silindi.',fbSaved:'Kaydedildi.',fbNoTwin:'Sunucuda "{name}" klasörü yok — önce gönderin.',fbHelp:'Klasöre çift tıklayınca iki panel de o klasöre girer. Sunucudaki bir metin dosyasına çift tıklayarak düzenleyebilirsiniz.',
+    quickUpdate:'Hızlı güncelle',quickHelp:'Hızlı güncelle yalnızca içeriği DEĞİŞEN dosyaları gönderir; sunucudaki kod klasörleri silinmez. İlk kez kullanıyorsanız önce bir normal güncelleme gerekiyor.',pickAccount:'Önce soldaki listeden bir cPanel hesabı seçin.',terminal:'Terminal',tabTerminalSub:'Sunucuda komut çalıştırın — cPanel’e gitmeden.',tmSub:'Komutlar sunucudaki dinleyiciye gönderiliyor. cd bir sonraki komuta taşınır.',tmCmd:'komut yazın…',tmRun:'Çalıştır',tmRecent:'Son:',tmHome:'Ev dizinine dön',tmReset:'Ev dizinine dönüldü.',tmExit:'çıkış kodu {code}',tmCpanel:'cPanel terminali',tmNote:'Etkileşimli programlar (vim, top) burada çalışmaz — onlar için cPanel terminalini kullanın. İlk komut, sunucudaki dinleyici uykudaysa bir dakikaya kadar sürebilir.',
     lvClean:'Yayından sonra temizlik yap',
     lvCleanHelp:'Uygulama önbelleğini boşaltır ve storage/logs içindeki .log dosyalarını sıfırlar. Önbellek zaten migration’dan önce temizleniyor; buradaki adım eski verinin ve eski log birikiminin kalmaması için.',
     mgNone:'Çalıştırma',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -593,7 +596,8 @@ const S = {
     lvServed:'Served from',lvViaHt:'routed into public/ via .htaccess',
     lvMigrate:'Migration',lvVendor:'vendor',lvKeepDebug:'Leave APP_DEBUG alone (keep the value on the server)',
     hkTitle:'Custom terminal commands',hkSub:'your own artisan/shell commands',hkPre:'After files are uploaded (before composer)',hkPost:'After vendor is ready (before artisan)',hkEnd:'After everything finishes',hkHelp:'One command per line. $PHP and $APPDIR are available, e.g. "$PHP" artisan queue:restart — Saved into the project .cpanel-next.json, so it applies to both deploys and updates.',hkSaved:'Commands saved.',
-    pickAccount:'Choose a cPanel account from the list above first.',terminal:'Terminal',tabTerminalSub:'Run commands on the server — without going to cPanel.',tmSub:'Commands are sent to the listener on the server. cd carries over to the next command.',tmCmd:'type a command…',tmRun:'Run',tmRecent:'Recent:',tmHome:'Back to home directory',tmReset:'Back in the home directory.',tmExit:'exit code {code}',tmCpanel:'cPanel terminal',tmNote:'Interactive programs (vim, top) do not work here — use the cPanel terminal for those. The first command can take up to a minute if the listener on the server is asleep.',
+    explorer:'Files',tabExplorerSub:'Your computer on the left, the server on the right. Select, send or download.',fbLocal:'My computer',fbRemote:'Server',fbSend:'Send to server',fbGet:'Download to my computer',fbEmpty:'(empty)',fbPick:'Select a file or folder first.',fbOne:'Select exactly one item to delete.',fbPlan:'{count} files · {size}',fbGetPlan:'{count} items will be downloaded → {dir}',fbEnvWarn:'These files may contain secrets: {list}',fbSkip:'Skipped: {list}',fbOverwrite:'Files with the same name on the server WILL BE OVERWRITTEN. Continue?',fbSure:'Continue?',fbDelAsk:'This will be permanently deleted FROM THE SERVER. Type its name to confirm: {name}',fbDeleted:'Deleted.',fbSaved:'Saved.',fbNoTwin:'There is no "{name}" folder on the server — send it first.',fbHelp:'Double-click a folder and both panes go into it. Double-click a text file on the server to edit it.',
+    quickUpdate:'Quick update',quickHelp:'Quick update only sends files whose CONTENT changed; the code folders on the server are not wiped. The first time, one normal update is needed.',pickAccount:'Choose a cPanel account from the list above first.',terminal:'Terminal',tabTerminalSub:'Run commands on the server — without going to cPanel.',tmSub:'Commands are sent to the listener on the server. cd carries over to the next command.',tmCmd:'type a command…',tmRun:'Run',tmRecent:'Recent:',tmHome:'Back to home directory',tmReset:'Back in the home directory.',tmExit:'exit code {code}',tmCpanel:'cPanel terminal',tmNote:'Interactive programs (vim, top) do not work here — use the cPanel terminal for those. The first command can take up to a minute if the listener on the server is asleep.',
     lvClean:'Clean up after publishing',
     lvCleanHelp:'Flushes the application cache and truncates the .log files in storage/logs. Caches are already cleared before migration; this step is about leaving no stale data or accumulated logs behind.',
     mgNone:'Do not run',mgMigrate:'migrate --force',mgMigrateSeed:'migrate + db:seed',
@@ -749,6 +753,7 @@ function navIcon(name) {
     settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-6 1 2.2 2.4.8 2.2-1 1.4 1.4-1 2.2.8 2.4L21 12l-2.2 1-.8 2.4 1 2.2-1.4 1.4-2.2-1-2.4.8L12 21l-1-2.2-2.4-.8-2.2 1L5 17.6l1-2.2-.8-2.4L3 12l2.2-1L6 8.6l-1-2.2L6.4 5l2.2 1 2.4-.8Z',
     services: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
     terminal: 'M4 4h16v16H4zM7 9l3 3-3 3M13 15h4',
+    explorer: 'M3 7h6l2 2h10v10H3zM3 7V5h6l2 2',
   };
   return el('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
     el('path', { d: paths[name] || paths.overview }));
@@ -938,7 +943,7 @@ function renderMain() {
    * TABS sabiti görünüm yönlendirmesinin tek doğruluk kaynağı olarak kalıyor;
    * statik test de yeni bir ekran eklenip eşlemesi unutulmasını böyle yakalar.
    */
-  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'terminal', 'history', 'settings'];
+  const TABS = ['overview', 'deploy', 'database', 'mail', 'ftp', 'explorer', 'terminal', 'history', 'settings'];
   const go = (k) => { ST.tab = k; renderMain(); };
   const navItem = (k) => el('button', {
     class: 'nav-item' + (ST.tab === k ? ' on' : ''),
@@ -948,7 +953,7 @@ function renderMain() {
   const services = ['database', 'mail', 'ftp'];
   const sidebar = el('aside', { class: 'sidebar', 'aria-label': s('navigation') },
     el('div', { class: 'nav-caption' }, s('sitesGroup')),
-    navItem('overview'), navItem('deploy'), navItem('terminal'), navItem('history'),
+    navItem('overview'), navItem('deploy'), navItem('explorer'), navItem('terminal'), navItem('history'),
     el('details', { class: 'nav-services', open: services.includes(ST.tab) ? 'true' : null },
       el('summary', { class: 'nav-item' }, navIcon('services'), el('span', {}, s('services'))),
       el('div', { class: 'nav-children' }, ...services.map(navItem))),
@@ -967,6 +972,8 @@ function renderMain() {
     el('p', {}, ST.tab === 'account'
       ? s(subKey).replace('{name}', ST.profile || '')
       : s(subKey))), body);
+  // Geniş düzen yalnızca iki panelli ekranda.
+  document.body.classList.toggle('wide-content', ST.tab === 'explorer');
   app.append(el('div', { class: 'app-shell' }, sidebar, main));
 
   if (ST.tab === 'account') {
@@ -975,7 +982,7 @@ function renderMain() {
   }
 
   ({ overview: viewOverview, deploy: viewDeploy, database: viewDatabase, mail: viewMail,
-     ftp: viewFtp, terminal: viewTerminal, history: viewHistory, settings: viewSettings })[ST.tab](body);
+     ftp: viewFtp, explorer: viewExplorer, terminal: viewTerminal, history: viewHistory, settings: viewSettings })[ST.tab](body);
 }
 
 /* -------------------------------------------------------------- overview */
@@ -1173,6 +1180,23 @@ function askLaravelUpdate(out, site, reload) {
   const clean = el('input', { type: 'checkbox', style: 'width:auto' });
   clean.checked = true;
 
+  /*
+   * Hızlı güncelleme: yalnızca içeriği değişen dosyalar gider.
+   * Sunucudaki dosya kaydı yoksa uç bunu reddedip sebebini söylüyor —
+   * sessizce tam yayına düşmek kafa karıştırırdı.
+   */
+  const quick = el('button', { style: 'margin-top:14px' }, '⚡ ' + s('quickUpdate'));
+  quick.addEventListener('click', async () => {
+    quick.disabled = true;
+    try {
+      const r = await post('quick-update', {
+        profile: ST.profile, projectPath: project,
+        appRoot: site.appRoot, domain: site.domain,
+      });
+      renderJob(out, r.jobId, reload);
+    } catch (err) { quick.disabled = false; showError(out, err); }
+  });
+
   const go = el('button', { class: 'primary', style: 'margin-top:14px' }, '⬆ ' + s('update'));
   go.addEventListener('click', async () => {
     go.disabled = true;
@@ -1209,7 +1233,8 @@ function askLaravelUpdate(out, site, reload) {
     el('p', { class: 'help' }, s('lvCleanHelp')),
     hookEditor(project),
     el('div', { class: 'row', style: 'margin-top:8px' },
-      go, el('button', { onclick: () => clear(out) }, s('cancel')))));
+      go, quick, el('button', { onclick: () => clear(out) }, s('cancel'))),
+    el('p', { class: 'help' }, s('quickHelp'))));
 }
 
 
@@ -1367,6 +1392,208 @@ function viewTerminal(root) {
   }).catch(() => {});
 
   input.focus();
+}
+
+
+/**
+ * DOSYA TARAYICISI — solda yerel, sağda sunucu.
+ *
+ * Çift tık iki panelde de aynı ada giriyor. Sunucuda o klasör yoksa
+ * GİRMİYOR: kullanıcı boş bir panele bakıp "dosyalarım nerede" demek yerine
+ * "önce gönder" uyarısı görüyor.
+ */
+function viewExplorer(root) {
+  clear(root);
+  if (!ST.profile) { root.append(el('div', { class: 'empty' }, s('pickAccount'))); return; }
+
+  const st = ST.explorer || (ST.explorer = { local: null, remote: null });
+  const out = el('div', {});
+
+  const leftBox = el('div', {});
+  const rightBox = el('div', {});
+  const sel = { local: new Set(), remote: new Set() };
+
+  const reloadBoth = () => { drawLocal(); drawRemote(); };
+
+  /** Bir panelin liste gövdesi. */
+  const pane = (side, data, onOpen) => {
+    const box = el('div', { class: 'browse', style: 'max-height:46vh' });
+    if (data.parent) {
+      box.append(el('div', { onclick: () => onOpen(data.parent) }, '⬆ ..'));
+    }
+    for (const e of data.entries) {
+      const cb = el('input', { type: 'checkbox', style: 'width:auto;margin:0 8px 0 0' });
+      cb.checked = sel[side].has(e.name);
+      cb.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if (cb.checked) sel[side].add(e.name); else sel[side].delete(e.name);
+      });
+      const row = el('div', { style: 'display:flex;align-items:center;gap:2px' },
+        cb,
+        el('span', { style: 'flex:1' }, (e.type === 'dir' ? '📁 ' : '📄 ') + e.name),
+        e.type === 'file' ? el('span', { class: 'help' }, bytes(e.size || 0)) : null);
+      row.addEventListener('dblclick', () => {
+        if (e.type === 'dir') twinOpen(side, e.name);
+        else if (side === 'remote') openEditor(e.name);
+      });
+      box.append(row);
+    }
+    if (!data.entries.length) box.append(el('div', { class: 'help' }, s('fbEmpty')));
+    return box;
+  };
+
+  /*
+   * ÇİFT TIK — İKİ PANELİ BİRDEN.
+   *
+   * Kullanıcının istediği davranış bu: soldaki klasöre girince sağda da aynı
+   * klasöre girsin. Sunucuda yoksa girmiyoruz ve sebebini söylüyoruz.
+   */
+  const twinOpen = async (side, name) => {
+    const nextLocal = side === 'local' ? joinPath(st.local.path, name) : joinPath(st.local.path, name);
+    const nextRemote = joinPath(st.remote.path, name);
+    clear(out);
+
+    if (side === 'local') {
+      await loadLocal(nextLocal);
+      const ok = st.remote.entries.some((e) => e.name === name && e.type === 'dir');
+      if (ok) await loadRemote(nextRemote);
+      else out.append(el('div', { class: 'msg warn' }, s('fbNoTwin').replace('{name}', name)));
+    } else {
+      await loadRemote(nextRemote);
+      const ok = st.local.entries.some((e) => e.name === name && e.type === 'dir');
+      if (ok) await loadLocal(nextLocal);
+    }
+    sel.local.clear(); sel.remote.clear();
+    reloadBoth();
+  };
+
+  const loadLocal = async (p) => {
+    st.local = await api('browse?files=1' + (p ? '&path=' + encodeURIComponent(p) : ''));
+  };
+  const loadRemote = async (p) => {
+    st.remote = await api('remote-browse?profile=' + encodeURIComponent(ST.profile)
+      + (p ? '&path=' + encodeURIComponent(p) : ''));
+  };
+
+  const drawLocal = () => {
+    clear(leftBox);
+    leftBox.append(
+      el('div', { class: 'sec' }, el('h2', {}, s('fbLocal')), el('p', { class: 'mono help' }, st.local.path)),
+      pane('local', st.local, async (p) => { await loadLocal(p); sel.local.clear(); drawLocal(); }),
+      el('div', { class: 'row', style: 'margin-top:10px' },
+        el('button', { class: 'primary', onclick: () => doTransfer('up') }, '→ ' + s('fbSend'))));
+  };
+
+  const drawRemote = () => {
+    clear(rightBox);
+    rightBox.append(
+      el('div', { class: 'sec' }, el('h2', {}, s('fbRemote')), el('p', { class: 'mono help' }, st.remote.path)),
+      pane('remote', st.remote, async (p) => { await loadRemote(p); sel.remote.clear(); drawRemote(); }),
+      el('div', { class: 'row', style: 'margin-top:10px' },
+        el('button', { class: 'primary', onclick: () => doTransfer('down') }, '← ' + s('fbGet')),
+        el('button', { class: 'danger', onclick: doDelete }, s('remove'))));
+  };
+
+  /* --------------------------------------------------------------- işlemler */
+
+  const doTransfer = async (direction) => {
+    const up = direction === 'up';
+    const items = [...(up ? sel.local : sel.remote)];
+    clear(out);
+    if (!items.length) { out.append(el('div', { class: 'msg warn' }, s('fbPick'))); return; }
+
+    // ÖZET ÖNCE — kaç dosya, ne kadar, riskli bir şey var mı.
+    let note = '';
+    if (up) {
+      const plan = await post('transfer-plan', { localDir: st.local.path, items });
+      note = s('fbPlan').replace('{count}', plan.count).replace('{size}', bytes(plan.bytes));
+      if (plan.dotenv.length) note += '\n⚠ ' + s('fbEnvWarn').replace('{list}', plan.dotenv.join(', '));
+      if (plan.skipped.length) note += '\n' + s('fbSkip').replace('{list}', plan.skipped.join(', '));
+    } else {
+      note = s('fbGetPlan').replace('{count}', items.length).replace('{dir}', st.local.path);
+    }
+
+    if (!confirm(note + '\n\n' + (up ? s('fbOverwrite') : s('fbSure')))) return;
+
+    const r = await post('transfer', {
+      profile: ST.profile, direction,
+      localDir: st.local.path, remoteDir: st.remote.path, items,
+    });
+    renderJob(out, r.jobId, async () => {
+      sel.local.clear(); sel.remote.clear();
+      await loadLocal(st.local.path); await loadRemote(st.remote.path);
+      reloadBoth();
+    });
+  };
+
+  const doDelete = async () => {
+    const items = [...sel.remote];
+    clear(out);
+    if (items.length !== 1) { out.append(el('div', { class: 'msg warn' }, s('fbOne'))); return; }
+    // Adını YAZARAK onay: silme geri alınamıyor.
+    const typed = prompt(s('fbDelAsk').replace('{name}', items[0]));
+    if (typed === null) return;
+    try {
+      await post('remote-delete', {
+        profile: ST.profile, remoteDir: st.remote.path, items, confirm: typed,
+      });
+      sel.remote.clear();
+      await loadRemote(st.remote.path);
+      drawRemote();
+      out.append(el('div', { class: 'msg ok' }, s('fbDeleted')));
+    } catch (err) { showError(out, err); }
+  };
+
+  const openEditor = async (name) => {
+    clear(out);
+    try {
+      const full = joinPath(st.remote.path, name);
+      const r = await api('remote-file?profile=' + encodeURIComponent(ST.profile)
+        + '&path=' + encodeURIComponent(full));
+      const ta = el('textarea', {
+        rows: '18', spellcheck: 'false',
+        style: 'width:100%;font-family:ui-monospace,monospace;font-size:12px',
+      });
+      ta.value = r.content;
+      const msg = el('div', {});
+      const save = el('button', { class: 'primary' }, s('save'));
+      save.addEventListener('click', async () => {
+        save.disabled = true; clear(msg);
+        try {
+          await post('remote-file', {
+            profile: ST.profile, path: full, content: ta.value, expectedHash: r.hash,
+          });
+          msg.append(el('div', { class: 'msg ok' }, s('fbSaved')));
+        } catch (err) { showError(msg, err); }
+        save.disabled = false;
+      });
+      out.append(el('div', { class: 'card' },
+        el('div', { class: 'sec' }, el('h2', {}, '✎ ' + name), el('p', { class: 'mono help' }, full)),
+        ta,
+        el('div', { class: 'row', style: 'margin-top:10px' },
+          save, el('button', { onclick: () => clear(out) }, s('cancel'))),
+        msg));
+    } catch (err) { showError(out, err); }
+  };
+
+  /* ------------------------------------------------------------------ kur */
+  const grid = el('div', { class: 'grid2' }, leftBox, rightBox);
+  root.append(el('div', { class: 'card' },
+    el('p', { class: 'help' }, s('fbHelp')), grid), out);
+
+  (async () => {
+    try {
+      if (!st.local) await loadLocal(null);
+      if (!st.remote) await loadRemote(null);
+      reloadBoth();
+    } catch (err) { showError(root, err); }
+  })();
+}
+
+/** İki yol parçasını birleştirir (hem yerel hem uzak; ikisi de / kullanıyor). */
+function joinPath(base, name) {
+  const b = String(base || '').replace(/\/+$/, '');
+  return b + '/' + name;
 }
 
 /**
