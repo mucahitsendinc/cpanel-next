@@ -16,6 +16,8 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux",
+    "seal:dmg": "node seal-dmg.mjs",
+    "release:mac": "node sync.mjs && electron-builder --mac && node seal-dmg.mjs",
     "signing:check": "node signing-check.mjs"
   },
   "devDependencies": {

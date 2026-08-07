@@ -325,7 +325,7 @@ test('masaüstü kabuğu lib/ ile aynı kaynağı kullanıyor', () => {
    * ayrışmaya başlar — testin sorduğu şey bu.
    */
   const own = fs.readdirSync(desktop).filter((f) => f.endsWith('.mjs'));
-  assert.deepEqual(own.sort(), ['main.mjs', 'signing-check.mjs', 'sync.mjs']);
+  assert.deepEqual(own.sort(), ['main.mjs', 'seal-dmg.mjs', 'signing-check.mjs', 'sync.mjs']);
 
   // `app-lib` türetilmiş: depoya girmemeli.
   const ignored = fs.readFileSync(path.join(desktop, '.gitignore'), 'utf8');
