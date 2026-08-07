@@ -101,3 +101,42 @@ test('sürüm damgası betiklerle birlikte artıyor', () => {
   assert.equal(typeof WORKER_VERSION, 'string');
   assert.ok(Number(WORKER_VERSION) >= 5, 'trap düzeltmesi 5. sürümle geldi');
 });
+
+/* ------------------------------- gövde kendi trap'ini kurarsa (canlı hata) */
+
+test('terminal gövdesi sarmalayıcının durum yazmasını ENGELLEMİYOR', async () => {
+  /*
+   * ⚠ CANLIDA GÖRÜLEN HATA — terminal komutu hiç bitmiyordu.
+   *
+   * POSIX kabuğunda TEK bir EXIT trap'i var. `session.mjs` işaretlerini
+   * yazmak için kendi trap'ini kuruyordu ve bu, sarmalayıcının `cn_finish`
+   * trap'ini EZİYORDU. Sonuç: komut koşuyor, çıktısını yazıyor, ama durum
+   * dosyası `{"step":"Baslatildi","done":false}` hâlinde kalıyor; istemci
+   * işin bittiğini göremeyip zaman aşımına kadar yokluyor. Kullanıcı ekranda
+   * "Baslatildi" görüp 70 saniye bekliyordu.
+   *
+   * Çözüm: gövde trap kurmuyor, `cn_marks` kancası tanımlıyor; tek trap
+   * sarmalayıcıda ve o kancayı çağırıyor.
+   */
+  const { buildScript, parseResult } = await import('../lib/shell/session.mjs');
+
+  for (const cmd of ['echo merhaba', 'exit 42', 'ls /kesinlikle-yok']) {
+    const body = buildScript(cmd, { cwd: os.tmpdir(), home: `'${os.tmpdir()}'` });
+    const { status, stdout } = runJob(body, { tolerant: true });
+
+    assert.notEqual(status, null, `"${cmd}": durum dosyası yazılmalı`);
+    assert.equal(status.done, true, `"${cmd}": done olmalı — yoksa istemci sonsuza kadar yoklar`);
+
+    // İşaretler de yazılmış olmalı: çıkış kodu ve dizin kaybolmamalı.
+    const parsed = parseResult(stdout);
+    assert.equal(typeof parsed.exitCode, 'number', `"${cmd}": çıkış kodu okunmalı`);
+    assert.ok(parsed.cwd, `"${cmd}": çalışma dizini bildirilmeli`);
+  }
+});
+
+test('gövde kancası sarmalayıcının hata mesajını bastırmıyor', () => {
+  // cn_marks çağrılıyor ama cn_fail'in yazdığı gerçek hata korunuyor.
+  const { status } = runJob('cn_marks() { :; }\ncn_fail "gercek hata"', { tolerant: true });
+  assert.equal(status.ok, false);
+  assert.equal(status.error, 'gercek hata');
+});
