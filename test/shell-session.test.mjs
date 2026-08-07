@@ -173,3 +173,32 @@ test('sinyalle ölen komutta bile dizin geri geliyor', () => {
   assert.equal(r.cwd !== null, true, 'dizin bildirilmeli');
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('$PHP terminal oturumunda tanımlı', () => {
+  /*
+   * ⚠ CANLIDA GÖRÜLEN HATA.
+   *
+   *   ~ $ "$PHP" artisan optimize:clear
+   *   .../running/xxx.sh: line 44: : command not found
+   *
+   * Kısayol düğmeleri `"$PHP" artisan …` yazıyor ama `PHP` değişkeni yalnızca
+   * LARAVEL YAYIN betiğinde tanımlıydı. Terminalde boş kaldığı için komut
+   * `"" artisan …` hâline geliyordu ve kabuk boş komut adını çalıştırmaya
+   * çalışıyordu.
+   */
+  const r = runInShell('test -n "$PHP" && echo dolu || echo BOS', os.tmpdir());
+  assert.equal(r.output.trim(), 'dolu', '$PHP boş kalmamalı');
+});
+
+test('$COMPOSER da tanımlı', () => {
+  // Aynı gerekçe: kullanıcı sunucuda `"$COMPOSER" install` yazabilmeli.
+  const script = buildScript('echo x', { cwd: os.tmpdir(), home: shellQuote(os.tmpdir()) });
+  assert.match(script, /COMPOSER=/);
+  assert.match(script, /export PHP COMPOSER/);
+});
+
+test('php tespiti kapatılabiliyor', () => {
+  // Yayın hattı kendi PHP tespitini yapıyor; iki kez aramak gereksiz.
+  const script = buildScript('echo x', { cwd: '/tmp', home: "'/tmp'", php: false });
+  assert.doesNotMatch(script, /PHP=""/);
+});
