@@ -96,3 +96,12 @@ test('hiçbir bağlantı kimlik bilgisi TAŞIMAZ', () => {
     assert.equal(u.password, '');
   }
 });
+
+test('terminal bağlantısı doğru sayfaya gidiyor', async () => {
+  const { terminal } = await import('../lib/cpanel-links.mjs');
+  const url = terminal({ host: 'sunucu.com', port: 2083, user: 'ali' });
+  assert.match(url, /^https:\/\/sunucu\.com:2083\/login\/\?/);
+  // goto_uri KODLANMIŞ olmalı: ham eğik çizgiler cPanel'de yönlendirmeyi bozuyor.
+  assert.match(url, /goto_uri=%2Ffrontend%2Fjupiter%2Fterminal%2Findex\.html/);
+  assert.match(url, /user=ali/);
+});
