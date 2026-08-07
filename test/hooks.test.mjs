@@ -72,3 +72,31 @@ test('komutlardaki baş/son boşluk kırpılır', () => {
   const { hooks } = normalizeHooks({ preInstall: ['  npm ci  '] });
   assert.deepEqual(hooks.preInstall, ['npm ci']);
 });
+
+/* ------------------------------------------------- Laravel hook duraklari */
+
+import { normalizeHooks as nh } from '../lib/hooks.mjs';
+
+test('üç durak da Laravel için tanımlı', () => {
+  /*
+   * Laravel ve Next AYNI aşama adlarını kullanıyor: tek bir
+   * `.cpanel-next.json` biçimi iki çatıya da yetsin, kullanıcı iki ayrı
+   * sözlük öğrenmesin.
+   */
+  const { hooks, count } = nh({
+    preInstall: 'echo once',
+    postInstall: ['"$PHP" artisan storage:link'],
+    postStart: ['"$PHP" artisan queue:restart', '"$PHP" artisan horizon:terminate'],
+  });
+  assert.equal(count, 4);
+  assert.deepEqual(Object.keys(hooks).sort(), ['postInstall', 'postStart', 'preInstall']);
+  // Tek metin, tek elemanlı diziye çevriliyor — karakter karakter DEĞİL.
+  assert.deepEqual(hooks.preInstall, ['echo once']);
+});
+
+test('kullanıcı komutu $PHP ve $APPDIR kullanabiliyor', () => {
+  // Bu iki değişken sunucu betiğinde tanımlı; kullanıcının doğru PHP
+  // sürümünü tahmin etmesi gerekmiyor.
+  const { hooks } = nh({ postStart: '"$PHP" artisan app:rapor --gun=1' });
+  assert.match(hooks.postStart[0], /\$PHP/);
+});
